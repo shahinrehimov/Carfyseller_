@@ -37,7 +37,7 @@ function AuthLayout() {
 
   return (
     <div
-      className={`h-screen w-screen ${isDark ? "bg-[#1D1D1D]" : "bg-gray-50"}`}
+      className={`h-screen w-full ${isDark ? "bg-[#1D1D1D]" : "bg-gray-50"}`}
     >
       <Outlet />
     </div>

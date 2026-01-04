@@ -16,6 +16,7 @@ import { Route as AppImport } from './routes/_app'
 import { Route as AppIndexImport } from './routes/_app/index'
 import { Route as AuthSigninImport } from './routes/auth/signin'
 import { Route as AuthResetPasswordImport } from './routes/auth/reset-password'
+import { Route as AuthRegisterImport } from './routes/auth/register'
 import { Route as AuthForgotPasswordImport } from './routes/auth/forgot-password'
 import { Route as AppProfileIndexImport } from './routes/_app/profile/index'
 
@@ -47,6 +48,12 @@ const AuthSigninRoute = AuthSigninImport.update({
 const AuthResetPasswordRoute = AuthResetPasswordImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+
+const AuthRegisterRoute = AuthRegisterImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => AuthRoute,
 } as any)
 
@@ -85,6 +92,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/auth/forgot-password'
       preLoaderRoute: typeof AuthForgotPasswordImport
+      parentRoute: typeof AuthImport
+    }
+    '/auth/register': {
+      id: '/auth/register'
+      path: '/register'
+      fullPath: '/auth/register'
+      preLoaderRoute: typeof AuthRegisterImport
       parentRoute: typeof AuthImport
     }
     '/auth/reset-password': {
@@ -134,12 +148,14 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface AuthRouteChildren {
   AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthSigninRoute: typeof AuthSigninRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthSigninRoute: AuthSigninRoute,
 }
@@ -150,6 +166,7 @@ export interface FileRoutesByFullPath {
   '': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/register': typeof AuthRegisterRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/signin': typeof AuthSigninRoute
   '/': typeof AppIndexRoute
@@ -159,6 +176,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/register': typeof AuthRegisterRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/signin': typeof AuthSigninRoute
   '/': typeof AppIndexRoute
@@ -170,6 +188,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/register': typeof AuthRegisterRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/signin': typeof AuthSigninRoute
   '/_app/': typeof AppIndexRoute
@@ -182,6 +201,7 @@ export interface FileRouteTypes {
     | ''
     | '/auth'
     | '/auth/forgot-password'
+    | '/auth/register'
     | '/auth/reset-password'
     | '/auth/signin'
     | '/'
@@ -190,6 +210,7 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/auth/forgot-password'
+    | '/auth/register'
     | '/auth/reset-password'
     | '/auth/signin'
     | '/'
@@ -199,6 +220,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/auth'
     | '/auth/forgot-password'
+    | '/auth/register'
     | '/auth/reset-password'
     | '/auth/signin'
     | '/_app/'
@@ -241,12 +263,17 @@ export const routeTree = rootRoute
       "filePath": "auth.tsx",
       "children": [
         "/auth/forgot-password",
+        "/auth/register",
         "/auth/reset-password",
         "/auth/signin"
       ]
     },
     "/auth/forgot-password": {
       "filePath": "auth/forgot-password.tsx",
+      "parent": "/auth"
+    },
+    "/auth/register": {
+      "filePath": "auth/register.tsx",
       "parent": "/auth"
     },
     "/auth/reset-password": {

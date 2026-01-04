@@ -36,25 +36,41 @@ function RouteComponent() {
   // Check if required parameters are present
   if (!searchParams.token || !searchParams.email) {
     return (
-      <div className="mx-auto w-full max-w-sm py-8">
-        <div className="text-center mb-6">
-          <h2
-            className={`text-2xl font-bold ${isDark ? "text-white" : "text-black"}`}
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="mb-8 flex justify-center">
+            <img src="/logo.svg" alt="Logo" className="h-16 w-auto" />
+          </div>
+
+          {/* Error Container with Border */}
+          <div
+            className={`rounded-lg border ${
+              isDark
+                ? "border-gray-700 bg-gray-800/50"
+                : "border-gray-200 bg-white"
+            } p-8 shadow-sm`}
           >
-            {t("reset_password") || "Reset Password"}
-          </h2>
-        </div>
-        <div
-          className={`rounded-md border ${
-            isDark
-              ? "border-red-800 bg-red-900/20 text-red-400"
-              : "border-red-300 bg-red-50 text-red-600"
-          } p-4 text-center`}
-        >
-          <p>
-            {t("invalid_reset_link") ||
-              "Invalid or expired reset link. Please request a new password reset."}
-          </p>
+            <h1
+              className={`mb-6 text-center text-2xl font-semibold ${
+                isDark ? "text-white" : "text-gray-900"
+              }`}
+            >
+              {t("reset_password") || "Reset Password"}
+            </h1>
+            <div
+              className={`rounded-md border ${
+                isDark
+                  ? "border-red-800 bg-red-900/20 text-red-400"
+                  : "border-red-300 bg-red-50 text-red-600"
+              } p-4 text-center`}
+            >
+              <p>
+                {t("invalid_reset_link") ||
+                  "Invalid or expired reset link. Please request a new password reset."}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -82,10 +98,11 @@ function RouteComponent() {
 
   const resetPassword = useMutation({
     mutationFn: async (json: ResetPasswordFormSchema) => {
-      const response = await controlApi.post(
-        `/reset-password?token=${searchParams.token}&email=${searchParams.email}`,
-        json,
-      );
+      const response = await controlApi.post("/reset-password", {
+        ...json,
+        token: searchParams.token,
+        email: searchParams.email,
+      });
       return response.data;
     },
     onSuccess(data) {
@@ -100,104 +117,122 @@ function RouteComponent() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-sm py-8">
-      <div className="text-center mb-6">
-        <h2
-          className={`text-2xl font-bold ${isDark ? "text-white" : "text-black"}`}
-        >
-          {t("reset_password")}
-        </h2>
-      </div>
-
-      <form
-        className="space-y-6"
-        onSubmit={form.handleSubmit((formData) => {
-          if (resetPassword.isPending) return;
-          resetPassword.mutate(formData);
-        })}
-      >
-        <div className="space-y-5">
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder={t("password")}
-              className={`w-full rounded-md border ${
-                isDark
-                  ? "border-gray-600 bg-gray-800 text-white"
-                  : "border-gray-300 bg-white text-black"
-              } px-4 py-3 pr-12 focus:border-primary focus:outline-none`}
-              {...form.register("password")}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className={`absolute right-3 top-1/2 -translate-y-1/2 ${
-                isDark
-                  ? "text-gray-400 hover:text-white"
-                  : "text-gray-500 hover:text-black"
-              } transition-colors`}
-            >
-              {showPassword ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-          {form.formState.errors.password && (
-            <p className="text-sm text-red-500">
-              {form.formState.errors.password.message}
-            </p>
-          )}
-
-          <div className="relative">
-            <input
-              type={showPasswordConfirmation ? "text" : "password"}
-              placeholder={t("password_confirmation")}
-              className={`w-full rounded-md border ${
-                isDark
-                  ? "border-gray-600 bg-gray-800 text-white"
-                  : "border-gray-300 bg-white text-black"
-              } px-4 py-3 pr-12 focus:border-primary focus:outline-none`}
-              {...form.register("password_confirmation")}
-            />
-            <button
-              type="button"
-              onClick={() =>
-                setShowPasswordConfirmation(!showPasswordConfirmation)
-              }
-              className={`absolute right-3 top-1/2 -translate-y-1/2 ${
-                isDark
-                  ? "text-gray-400 hover:text-white"
-                  : "text-gray-500 hover:text-black"
-              } transition-colors`}
-            >
-              {showPasswordConfirmation ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-          {form.formState.errors.password_confirmation && (
-            <p className="text-sm text-red-500">
-              {form.formState.errors.password_confirmation.message}
-            </p>
-          )}
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="mb-8 flex justify-center">
+          <img src="/logo.svg" alt="Logo" className="h-16 w-auto" />
         </div>
 
-        <button
-          type="submit"
-          disabled={resetPassword.isPending}
-          className="w-full rounded-md bg-primary py-3 font-medium text-white transition-colors hover:bg-primary/90"
+        {/* Form Container with Border */}
+        <div
+          className={`rounded-lg border ${
+            isDark
+              ? "border-gray-700 bg-gray-800/50"
+              : "border-gray-200 bg-white"
+          } p-8 shadow-sm`}
         >
-          {resetPassword.isPending ? (
-            <Loader2 className="w-6 h-6 animate-spin mx-auto" />
-          ) : (
-            t("reset_password")
-          )}
-        </button>
-      </form>
+          <h1
+            className={`mb-6 text-center text-2xl font-semibold ${
+              isDark ? "text-white" : "text-gray-900"
+            }`}
+          >
+            {t("reset_password")}
+          </h1>
+
+          <form
+            className="space-y-5"
+            onSubmit={form.handleSubmit((formData) => {
+              if (resetPassword.isPending) return;
+              resetPassword.mutate(formData);
+            })}
+          >
+            <div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t("password")}
+                  className={`w-full rounded-md border ${
+                    isDark
+                      ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
+                      : "border-gray-300 bg-white text-black placeholder:text-gray-500"
+                  } focus:border-primary px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                  {...form.register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${
+                    isDark
+                      ? "text-gray-400 hover:text-gray-300"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+              {form.formState.errors.password && (
+                <p className="mt-1 text-sm text-red-500">
+                  {form.formState.errors.password.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <div className="relative">
+                <input
+                  type={showPasswordConfirmation ? "text" : "password"}
+                  placeholder={t("password_confirmation")}
+                  className={`w-full rounded-md border ${
+                    isDark
+                      ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
+                      : "border-gray-300 bg-white text-black placeholder:text-gray-500"
+                  } focus:border-primary px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                  {...form.register("password_confirmation")}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPasswordConfirmation(!showPasswordConfirmation)
+                  }
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${
+                    isDark
+                      ? "text-gray-400 hover:text-gray-300"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {showPasswordConfirmation ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+              {form.formState.errors.password_confirmation && (
+                <p className="mt-1 text-sm text-red-500">
+                  {form.formState.errors.password_confirmation.message}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={resetPassword.isPending}
+              className="bg-primary hover:bg-primary/90 w-full rounded-md py-3 font-medium text-white transition-colors disabled:opacity-50"
+            >
+              {resetPassword.isPending ? (
+                <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+              ) : (
+                t("reset_password")
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

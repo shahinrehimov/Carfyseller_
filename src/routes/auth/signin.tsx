@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -54,7 +54,7 @@ function RouteComponent() {
       return response.data;
     },
     onSuccess(data) {
-      useAuthStore.getState().setAuth(data.data, data.token);
+      useAuthStore.getState().setAuth(data.data, data.data.token);
       redirect();
     },
     async onError(error) {
@@ -159,6 +159,33 @@ function RouteComponent() {
                 t("login")
               )}
             </button>
+
+            {/* Link to Forgot Password */}
+            <div className="text-center">
+              <Link
+                to="/auth/forgot-password"
+                className="text-primary hover:text-primary/90 text-sm font-medium"
+              >
+                {t("forgot_password")}
+              </Link>
+            </div>
+
+            {/* Link to Register */}
+            <div className="text-center">
+              <p
+                className={`text-sm ${
+                  isDark ? "text-gray-400" : "text-gray-600"
+                }`}
+              >
+                {t("dont_have_account")}{" "}
+                <Link
+                  to="/auth/register"
+                  className="text-primary hover:text-primary/90 font-medium"
+                >
+                  {t("register")}
+                </Link>
+              </p>
+            </div>
           </form>
         </div>
       </div>
