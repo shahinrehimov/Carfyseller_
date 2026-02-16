@@ -8,131 +8,181 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AuthSigninRouteImport } from './routes/auth/signin'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
+import { Route as AuthRegisterRouteImport } from './routes/auth/register'
+import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
+import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index'
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as AuthImport } from './routes/auth'
-import { Route as AppImport } from './routes/_app'
-import { Route as AppIndexImport } from './routes/_app/index'
-import { Route as AuthSigninImport } from './routes/auth/signin'
-import { Route as AuthResetPasswordImport } from './routes/auth/reset-password'
-import { Route as AuthRegisterImport } from './routes/auth/register'
-import { Route as AuthForgotPasswordImport } from './routes/auth/forgot-password'
-import { Route as AppProfileIndexImport } from './routes/_app/profile/index'
-
-// Create/Update Routes
-
-const AuthRoute = AuthImport.update({
+const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const AppRoute = AppImport.update({
+const AppRoute = AppRouteImport.update({
   id: '/_app',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const AppIndexRoute = AppIndexImport.update({
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-
-const AuthSigninRoute = AuthSigninImport.update({
+const AuthSigninRoute = AuthSigninRouteImport.update({
   id: '/signin',
   path: '/signin',
   getParentRoute: () => AuthRoute,
 } as any)
-
-const AuthResetPasswordRoute = AuthResetPasswordImport.update({
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => AuthRoute,
 } as any)
-
-const AuthRegisterRoute = AuthRegisterImport.update({
+const AuthRegisterRoute = AuthRegisterRouteImport.update({
   id: '/register',
   path: '/register',
   getParentRoute: () => AuthRoute,
 } as any)
-
-const AuthForgotPasswordRoute = AuthForgotPasswordImport.update({
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
   getParentRoute: () => AuthRoute,
 } as any)
-
-const AppProfileIndexRoute = AppProfileIndexImport.update({
+const AppProfileIndexRoute = AppProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
   getParentRoute: () => AppRoute,
 } as any)
 
-// Populate the FileRoutesByPath interface
+export interface FileRoutesByFullPath {
+  '/': typeof AppIndexRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/auth/signin': typeof AuthSigninRoute
+  '/profile/': typeof AppProfileIndexRoute
+}
+export interface FileRoutesByTo {
+  '/auth': typeof AuthRouteWithChildren
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/auth/signin': typeof AuthSigninRoute
+  '/': typeof AppIndexRoute
+  '/profile': typeof AppProfileIndexRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/_app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRouteWithChildren
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/auth/signin': typeof AuthSigninRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/profile/': typeof AppProfileIndexRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/auth/forgot-password'
+    | '/auth/register'
+    | '/auth/reset-password'
+    | '/auth/signin'
+    | '/profile/'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/auth'
+    | '/auth/forgot-password'
+    | '/auth/register'
+    | '/auth/reset-password'
+    | '/auth/signin'
+    | '/'
+    | '/profile'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/auth'
+    | '/auth/forgot-password'
+    | '/auth/register'
+    | '/auth/reset-password'
+    | '/auth/signin'
+    | '/_app/'
+    | '/_app/profile/'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRouteWithChildren
+}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_app': {
-      id: '/_app'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof AppImport
-      parentRoute: typeof rootRoute
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
-      preLoaderRoute: typeof AuthImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/auth/forgot-password': {
-      id: '/auth/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/auth/forgot-password'
-      preLoaderRoute: typeof AuthForgotPasswordImport
-      parentRoute: typeof AuthImport
-    }
-    '/auth/register': {
-      id: '/auth/register'
-      path: '/register'
-      fullPath: '/auth/register'
-      preLoaderRoute: typeof AuthRegisterImport
-      parentRoute: typeof AuthImport
-    }
-    '/auth/reset-password': {
-      id: '/auth/reset-password'
-      path: '/reset-password'
-      fullPath: '/auth/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordImport
-      parentRoute: typeof AuthImport
-    }
-    '/auth/signin': {
-      id: '/auth/signin'
-      path: '/signin'
-      fullPath: '/auth/signin'
-      preLoaderRoute: typeof AuthSigninImport
-      parentRoute: typeof AuthImport
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/': {
       id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AppIndexImport
-      parentRoute: typeof AppImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/auth/signin': {
+      id: '/auth/signin'
+      path: '/signin'
+      fullPath: '/auth/signin'
+      preLoaderRoute: typeof AuthSigninRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/register': {
+      id: '/auth/register'
+      path: '/register'
+      fullPath: '/auth/register'
+      preLoaderRoute: typeof AuthRegisterRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_app/profile/': {
       id: '/_app/profile/'
       path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof AppProfileIndexImport
-      parentRoute: typeof AppImport
+      fullPath: '/profile/'
+      preLoaderRoute: typeof AppProfileIndexRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
-
-// Create and export the route tree
 
 interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
@@ -162,136 +212,10 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
-export interface FileRoutesByFullPath {
-  '': typeof AppRouteWithChildren
-  '/auth': typeof AuthRouteWithChildren
-  '/auth/forgot-password': typeof AuthForgotPasswordRoute
-  '/auth/register': typeof AuthRegisterRoute
-  '/auth/reset-password': typeof AuthResetPasswordRoute
-  '/auth/signin': typeof AuthSigninRoute
-  '/': typeof AppIndexRoute
-  '/profile': typeof AppProfileIndexRoute
-}
-
-export interface FileRoutesByTo {
-  '/auth': typeof AuthRouteWithChildren
-  '/auth/forgot-password': typeof AuthForgotPasswordRoute
-  '/auth/register': typeof AuthRegisterRoute
-  '/auth/reset-password': typeof AuthResetPasswordRoute
-  '/auth/signin': typeof AuthSigninRoute
-  '/': typeof AppIndexRoute
-  '/profile': typeof AppProfileIndexRoute
-}
-
-export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/_app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRouteWithChildren
-  '/auth/forgot-password': typeof AuthForgotPasswordRoute
-  '/auth/register': typeof AuthRegisterRoute
-  '/auth/reset-password': typeof AuthResetPasswordRoute
-  '/auth/signin': typeof AuthSigninRoute
-  '/_app/': typeof AppIndexRoute
-  '/_app/profile/': typeof AppProfileIndexRoute
-}
-
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | ''
-    | '/auth'
-    | '/auth/forgot-password'
-    | '/auth/register'
-    | '/auth/reset-password'
-    | '/auth/signin'
-    | '/'
-    | '/profile'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/auth'
-    | '/auth/forgot-password'
-    | '/auth/register'
-    | '/auth/reset-password'
-    | '/auth/signin'
-    | '/'
-    | '/profile'
-  id:
-    | '__root__'
-    | '/_app'
-    | '/auth'
-    | '/auth/forgot-password'
-    | '/auth/register'
-    | '/auth/reset-password'
-    | '/auth/signin'
-    | '/_app/'
-    | '/_app/profile/'
-  fileRoutesById: FileRoutesById
-}
-
-export interface RootRouteChildren {
-  AppRoute: typeof AppRouteWithChildren
-  AuthRoute: typeof AuthRouteWithChildren
-}
-
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/_app",
-        "/auth"
-      ]
-    },
-    "/_app": {
-      "filePath": "_app.tsx",
-      "children": [
-        "/_app/",
-        "/_app/profile/"
-      ]
-    },
-    "/auth": {
-      "filePath": "auth.tsx",
-      "children": [
-        "/auth/forgot-password",
-        "/auth/register",
-        "/auth/reset-password",
-        "/auth/signin"
-      ]
-    },
-    "/auth/forgot-password": {
-      "filePath": "auth/forgot-password.tsx",
-      "parent": "/auth"
-    },
-    "/auth/register": {
-      "filePath": "auth/register.tsx",
-      "parent": "/auth"
-    },
-    "/auth/reset-password": {
-      "filePath": "auth/reset-password.tsx",
-      "parent": "/auth"
-    },
-    "/auth/signin": {
-      "filePath": "auth/signin.tsx",
-      "parent": "/auth"
-    },
-    "/_app/": {
-      "filePath": "_app/index.tsx",
-      "parent": "/_app"
-    },
-    "/_app/profile/": {
-      "filePath": "_app/profile/index.tsx",
-      "parent": "/_app"
-    }
-  }
-}
-ROUTE_MANIFEST_END */

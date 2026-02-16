@@ -1,4 +1,3 @@
-import { invariant } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 const consoleToToastMap = {
@@ -10,7 +9,9 @@ const consoleToToastMap = {
 } as const satisfies Partial<Record<keyof typeof console, keyof typeof toast>>;
 
 export function polyfillToastConsole() {
-  invariant(import.meta.env.DEV, "This should only be done in dev");
+  if (!import.meta.env.DEV) {
+    throw new Error("This should only be done in dev");
+  }
   Object.entries(consoleToToastMap).forEach((entries) => {
     const [consoleKey, toastKey] = entries as [
       keyof typeof consoleToToastMap,
