@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Pencil, Trash2, Eye, Plus } from "lucide-react";
+import { Loader2, Search, Pencil, Trash2, Eye, Plus, Layers } from "lucide-react";
 import Modal from "@/components/ui/modal";
 import DeleteModal from "@/components/ui/delete-modal";
 import { useTranslation } from "@/lib/utils/translationLoader";
@@ -26,7 +26,7 @@ function ProductsPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  
+
   const { data, isLoading, refetch } = useProducts({ page, search });
   const deleteProductMutation = useDeleteProduct();
 
@@ -41,7 +41,7 @@ function ProductsPage() {
 
   const handleDelete = () => {
     if (!selectedProduct) return;
-    
+
     deleteProductMutation.mutate(selectedProduct.id, {
       onSuccess: () => {
         toast.success(t("product_deleted_successfully"));
@@ -50,7 +50,9 @@ function ProductsPage() {
         refetch();
       },
       onError: (error: any) => {
-        toast.error(error?.response?.data?.message || t("error_deleting_product"));
+        toast.error(
+          error?.response?.data?.message || t("error_deleting_product"),
+        );
       },
     });
   };
@@ -91,8 +93,8 @@ function ProductsPage() {
               <TableHead>{t("title")}</TableHead>
               <TableHead>{t("brand")}</TableHead>
               <TableHead>{t("category")}</TableHead>
-              <TableHead>{t("stock")}</TableHead>
-              <TableHead>{t("price")}</TableHead>
+              <TableHead>{t("is_product_set")}</TableHead>
+              <TableHead>{t("variants")}</TableHead>
               <TableHead>{t("status")}</TableHead>
               <TableHead>{t("actions")}</TableHead>
             </TableRow>
@@ -119,42 +121,65 @@ function ProductsPage() {
                       <div className="h-10 w-10 rounded bg-muted" />
                     )}
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate">{product.title}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">
+                    {product.title}
+                  </TableCell>
                   <TableCell>
-                    {product.brand_title ? (
-                      <Badge variant="outline">{product.brand_title}</Badge>
+                    {product.brand?.title ? (
+                      <Badge variant="outline">{product.brand.title}</Badge>
                     ) : (
                       "-"
                     )}
                   </TableCell>
                   <TableCell>
-                    {product.category_title ? (
-                      <Badge variant="outline">{product.category_title}</Badge>
-                    ) : (
-                      "-"
-                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {product.main_category?.title && (
+                        <Badge variant="outline">
+                          {product.main_category.title}
+                        </Badge>
+                      )}
+                      {product.categories
+                        ?.filter((cat) => cat.id !== product.main_category?.id)
+                        .map((cat) => (
+                          <Badge key={cat.id} variant="secondary">
+                            {cat.title}
+                          </Badge>
+                        ))}
+                      {!product.main_category && (!product.categories || product.categories.length === 0) && "-"}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={product.stock > 0 ? "default" : "destructive"}>
-                      {product.stock}
+                    <Badge className={product.is_set ? "bg-green-500 hover:bg-green-600 text-white" : "bg-red-500 hover:bg-red-600 text-white"}>
+                      {product.is_set ? t("yes") : t("no")}
                     </Badge>
                   </TableCell>
-                  <TableCell>${product.price}</TableCell>
                   <TableCell>
-                    <Badge variant={product.is_active ? "default" : "secondary"}>
+                    <Badge variant="secondary">
+                      {product.variants_count ?? 0}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={product.is_active ? "default" : "secondary"}
+                    >
                       {product.is_active ? t("active") : t("inactive")}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Link to={`/products/${product.id}`}>
+                      <Link to="/products/$productId" params={{ productId: String(product.id) }}>
                         <Button variant="ghost" size="icon">
                           <Eye className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <Link to={`/products/edit/${product.id}`}>
+                      <Link to="/products/edit/$productId" params={{ productId: String(product.id) }}>
                         <Button variant="ghost" size="icon">
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Link to="/products/variants/$productId" params={{ productId: String(product.id) }}>
+                        <Button variant="ghost" size="icon" title={t("variants")}>
+                          <Layers className="h-4 w-4" />
                         </Button>
                       </Link>
                       <Button

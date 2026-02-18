@@ -4,17 +4,71 @@ import { controlPrivateApi } from "../axios/controlPrivateApi";
 // Types
 export interface Product {
   id: number;
-  title: string;
+  uuid: string;
   slug: string;
-  sku: string;
+  title: string;
   main_image: string | null;
-  price: number;
-  discount_price: number | null;
-  category_title: string;
-  brand_title: string;
-  is_active: boolean;
-  is_featured: boolean;
+  hover_image: string | null;
+  images: { urls: string[]; media_ids: number[] };
+  is_set: boolean;
+  brand_id: number | null;
+  brand: {
+    id: number;
+    uuid: string;
+    slug: string;
+    title: string;
+  } | null;
+  main_category: {
+    id: number;
+    uuid: string;
+    slug: string;
+    title: string;
+    parent: null | { id: number; uuid: string; slug: string; title: string };
+  } | null;
+  categories: Array<{
+    id: number;
+    uuid: string;
+    slug: string;
+    title: string;
+  }>;
+  groups: Array<any>;
+  variants_count: number;
+  variants: Array<{
+    id: number;
+    uuid: string;
+    slug: string;
+    is_set: boolean;
+    is_default: boolean;
+    sets?: Array<{
+      id: number;
+      uuid: string;
+      slug: string;
+      quantity: number;
+      product: {
+        id: number;
+        title: string;
+        main_image: string | null;
+        slug: string;
+      };
+    }>;
+  }>;
+  translations: Array<{
+    language_id: number;
+    title: string;
+    description_short: string;
+    description: string;
+    delivery: string;
+    note: string;
+  }>;
+  price: number | null;
   stock: number;
+  has_discount: boolean;
+  discount: number | null;
+  discount_type: string | null;
+  discount_start_at: string | null;
+  discount_end_at: string | null;
+  is_active: boolean;
+  created_user: string;
   created_date: string;
 }
 

@@ -44,16 +44,24 @@ function AddProductPage() {
       .notRequired(),
     images: Yup.array()
       .of(
-        Yup.object().test("has-file", t("required_field"), function (value: any) {
-          return value && value.file && value.file instanceof File;
-        })
+        Yup.object().test(
+          "has-file",
+          t("required_field"),
+          function (value: any) {
+            return value && value.file && value.file instanceof File;
+          },
+        ),
       )
-      .test("at-least-one", t("at_least_one_image_required"), function (value: any) {
-        if (!value || !Array.isArray(value)) return false;
-        return value.some(
-          (image: any) => image && image.file && image.file instanceof File
-        );
-      })
+      .test(
+        "at-least-one",
+        t("at_least_one_image_required"),
+        function (value: any) {
+          if (!value || !Array.isArray(value)) return false;
+          return value.some(
+            (image: any) => image && image.file && image.file instanceof File,
+          );
+        },
+      )
       .required(t("required_field")),
     translations: Yup.array()
       .of(
@@ -64,7 +72,7 @@ function AddProductPage() {
           description: Yup.string().notRequired(),
           delivery: Yup.string().notRequired(),
           note: Yup.string().notRequired(),
-        })
+        }),
       )
       .required(),
     is_set: Yup.boolean().notRequired(),
@@ -76,14 +84,12 @@ function AddProductPage() {
             Yup.object({
               product_variant_id: Yup.number().required(t("required_field")),
               quantity: Yup.number().required(t("required_field")),
-            })
+            }),
           )
           .min(1, t("required_field")),
       otherwise: (schema) => schema.notRequired(),
     }),
     price: Yup.number().notRequired(),
-    uuid_1c: Yup.string().notRequired(),
-    variant_uuid_1c: Yup.string().notRequired(),
     brand_id: Yup.number().required(t("required_field")),
     categories: Yup.array().of(Yup.number()).required(t("required_field")),
     main_category_id: Yup.number().required(t("required_field")),
@@ -109,6 +115,13 @@ function AddProductPage() {
       then: (schema) => schema.required(t("required_field")),
       otherwise: (schema) => schema.notRequired(),
     }),
+    brand_model_id: Yup.number().notRequired(),
+    year: Yup.number()
+      .transform((value, originalValue) =>
+        originalValue === "" ? undefined : value,
+      )
+      .notRequired(),
+    city_id: Yup.number().notRequired(),
     options: Yup.array()
       .of(
         Yup.object({
@@ -119,19 +132,22 @@ function AddProductPage() {
               Yup.object({
                 language_id: Yup.number().required(t("required_field")),
                 translatable_value: Yup.string().notRequired(),
-              })
+              }),
             )
             .notRequired(),
-        })
+        }),
       )
       .notRequired(),
   });
 
   // State
   const [brands, setBrands] = useState<any[]>([]);
+  const [brandModels, setBrandModels] = useState<any[]>([]);
+  const [brandModelsLoading, setBrandModelsLoading] = useState(false);
   const [flattenedCategories, setFlattenedCategories] = useState<any[]>([]);
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("0");
@@ -167,9 +183,8 @@ function AddProductPage() {
       is_set: false,
       sets: [],
       price: 0,
-      uuid_1c: "",
-      variant_uuid_1c: "",
       brand_id: undefined,
+      brand_model_id: undefined,
       categories: [],
       main_category_id: undefined,
       stock: 0,
@@ -178,6 +193,8 @@ function AddProductPage() {
       discount_type: "",
       discount_start_at: undefined,
       discount_end_at: undefined,
+      year: "" as any,
+      city_id: undefined,
       options: [],
     },
   });
@@ -186,6 +203,7 @@ function AddProductPage() {
   const isSet = watch("is_set");
   const hasDiscount = watch("has_discount");
   const selectedCategories = watch("categories");
+  const selectedBrandId = watch("brand_id");
   const options = watch("options");
   const sets = watch("sets");
 
@@ -195,6 +213,30 @@ function AddProductPage() {
       setValue("sets", [{ product_variant_id: "", quantity: "" }]);
     }
   }, [isSet, sets, setValue]);
+
+  // Fetch brand models when brand changes
+  useEffect(() => {
+    if (!selectedBrandId) {
+      setBrandModels([]);
+      setValue("brand_model_id", undefined);
+      return;
+    }
+    const fetchBrandModels = async () => {
+      setBrandModelsLoading(true);
+      try {
+        const res = await controlPrivateApi.get(
+          `/brands/${selectedBrandId}/models/list`,
+        );
+        setBrandModels(res.data.data || []);
+      } catch {
+        setBrandModels([]);
+      } finally {
+        setBrandModelsLoading(false);
+      }
+    };
+    setValue("brand_model_id", undefined);
+    fetchBrandModels();
+  }, [selectedBrandId, setValue]);
 
   // Image handlers
   const handleMainImageChange = (newImage: any) => {
@@ -207,7 +249,9 @@ function AddProductPage() {
     setValue("hover_image", newImage);
   };
 
-  const handleMultipleImagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMultipleImagesChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const files = Array.from(event.target.files || []);
     if (files.length > 0) {
       const newImageObjects = files.map((file) => ({
@@ -239,8 +283,8 @@ function AddProductPage() {
       value: productOption.is_translatable
         ? undefined
         : productOption.has_items
-        ? ""
-        : "",
+          ? ""
+          : "",
       translations: productOption.is_translatable
         ? langs.map((lang: any) => ({
             language_id: lang.id,
@@ -262,18 +306,15 @@ function AddProductPage() {
 
     setValue(
       "options",
-      currentOptions.filter((_, i) => i !== index)
+      currentOptions.filter((_, i) => i !== index),
     );
   };
 
   const getAvailableOptions = () => {
-    const currentOptions = getValues("options") || [];
+    const currentOptions = options || [];
     const selectedOptionIds = currentOptions.map((opt: any) => opt.option_id);
 
     return productOptions.filter((option: any) => {
-      if (option.is_required) {
-        return !selectedOptionIds.includes(option.id);
-      }
       return !selectedOptionIds.includes(option.id);
     });
   };
@@ -291,7 +332,7 @@ function AddProductPage() {
     const currentSets = getValues("sets") || [];
     setValue(
       "sets",
-      currentSets.filter((_, i) => i !== index)
+      currentSets.filter((_, i) => i !== index),
     );
   };
 
@@ -300,11 +341,28 @@ function AddProductPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [brandsRes, categoriesRes, discountTypesRes, productOptionsRes] = await Promise.all([
-          controlPrivateApi.get("/brands/list").catch(() => ({ data: { data: [] } })),
-          controlPrivateApi.get("/categories/list?with_subs=yes").catch(() => ({ data: { data: [] } })),
-          controlPrivateApi.get("/discount-types/list").catch(() => ({ data: { data: [] } })),
-          controlPrivateApi.get("/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
+        const [
+          brandsRes,
+          categoriesRes,
+          discountTypesRes,
+          productOptionsRes,
+          countriesRes,
+        ] = await Promise.all([
+          controlPrivateApi
+            .get("/brands/list")
+            .catch(() => ({ data: { data: [] } })),
+          controlPrivateApi
+            .get("/categories/list?with_subs=yes")
+            .catch(() => ({ data: { data: [] } })),
+          controlPrivateApi
+            .get("/discount-types/list")
+            .catch(() => ({ data: { data: [] } })),
+          controlPrivateApi
+            .get("/product-options/list?with_items=yes")
+            .catch(() => ({ data: { data: [] } })),
+          controlPrivateApi
+            .get("/countries/list?with_cities=yes")
+            .catch(() => ({ data: { data: [] } })),
         ]);
 
         setBrands(brandsRes.data.data || []);
@@ -342,9 +400,14 @@ function AddProductPage() {
         setDiscountTypes(discountTypesRes.data.data || []);
         setProductOptions(productOptionsRes.data.data || []);
 
+        const allCities = (countriesRes.data.data || []).flatMap(
+          (country: any) => country.cities || [],
+        );
+        setCities(allCities);
+
         // Automatically add required options
         const requiredOptions = (productOptionsRes.data.data || []).filter(
-          (option: any) => option.is_required
+          (option: any) => option.is_required,
         );
         const initialOptions = requiredOptions.map((option: any) => ({
           option_id: option.id,
@@ -352,8 +415,8 @@ function AddProductPage() {
           value: option.is_translatable
             ? undefined
             : option.has_items
-            ? ""
-            : "",
+              ? ""
+              : "",
           translations: option.is_translatable
             ? langs.map((lang: any) => ({
                 language_id: lang.id,
@@ -376,7 +439,10 @@ function AddProductPage() {
   // Clear main_category_id when categories change
   useEffect(() => {
     const currentMainCategory = getValues("main_category_id");
-    if (currentMainCategory && !selectedCategories?.includes(currentMainCategory)) {
+    if (
+      currentMainCategory &&
+      !selectedCategories?.includes(currentMainCategory)
+    ) {
       setValue("main_category_id", "" as any);
     }
   }, [selectedCategories, getValues, setValue]);
@@ -395,23 +461,27 @@ function AddProductPage() {
         discount: data.discount || null,
         discount_type: data.discount_type || null,
         discount_start_at: data.discount_start_at
-          ? new Date(data.discount_start_at).toLocaleDateString("en-GB")
+          ? (() => {
+              const d = new Date(data.discount_start_at!);
+              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            })()
           : null,
         discount_end_at: data.discount_end_at
-          ? new Date(data.discount_end_at).toLocaleDateString("en-GB")
+          ? (() => {
+              const d = new Date(data.discount_end_at!);
+              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            })()
           : null,
         brand_id: data.brand_id,
+        brand_model_id: data.brand_model_id || null,
         categories: data.categories,
         main_category_id: data.main_category_id,
+        year: data.year || null,
+        city_id: data.city_id || null,
         stock: data.stock,
         is_set: data.is_set,
         has_discount: data.has_discount,
       };
-
-      if (!data.is_set) {
-        basicFields.uuid_1c = data.uuid_1c || "";
-        basicFields.variant_uuid_1c = data.variant_uuid_1c || "";
-      }
 
       // Add to FormData
       Object.keys(basicFields).forEach((key) => {
@@ -438,7 +508,7 @@ function AddProductPage() {
           if (set.product_variant_id) {
             formData.append(
               `sets[${index}][product_variant_id]`,
-              set.product_variant_id
+              set.product_variant_id,
             );
           }
           if (set.quantity) {
@@ -479,7 +549,10 @@ function AddProductPage() {
 
         translationFields.forEach((field) => {
           if (translation && translation[field]) {
-            formData.append(`translations[${index}][${field}]`, translation[field]);
+            formData.append(
+              `translations[${index}][${field}]`,
+              translation[field],
+            );
           }
         });
       });
@@ -502,24 +575,26 @@ function AddProductPage() {
             } else {
               // Translatable option
               if (option.translations && option.translations.length > 0) {
-                option.translations.forEach((translation: any, transIndex: number) => {
-                  if (translation.language_id) {
-                    formData.append(
-                      `options[${index}][translations][${transIndex}][language_id]`,
-                      translation.language_id
-                    );
-                  }
-                  if (
-                    translation.translatable_value !== null &&
-                    translation.translatable_value !== undefined &&
-                    translation.translatable_value !== ""
-                  ) {
-                    formData.append(
-                      `options[${index}][translations][${transIndex}][translatable_value]`,
-                      translation.translatable_value
-                    );
-                  }
-                });
+                option.translations.forEach(
+                  (translation: any, transIndex: number) => {
+                    if (translation.language_id) {
+                      formData.append(
+                        `options[${index}][translations][${transIndex}][language_id]`,
+                        translation.language_id,
+                      );
+                    }
+                    if (
+                      translation.translatable_value !== null &&
+                      translation.translatable_value !== undefined &&
+                      translation.translatable_value !== ""
+                    ) {
+                      formData.append(
+                        `options[${index}][translations][${transIndex}][translatable_value]`,
+                        translation.translatable_value,
+                      );
+                    }
+                  },
+                );
               }
             }
           }
@@ -573,7 +648,9 @@ function AddProductPage() {
 
             {/* Hover Image */}
             <div className="space-y-2">
-              <Label>{t("hover_image")} ({t("optional")})</Label>
+              <Label>
+                {t("hover_image")} ({t("optional")})
+              </Label>
               <FileInput file={hoverImage} setFile={handleHoverImageChange} />
               {errors.hover_image && (
                 <p className="text-sm text-destructive">
@@ -585,7 +662,9 @@ function AddProductPage() {
 
           {/* Additional Images */}
           <div className="space-y-2">
-            <Label>{t("additional_images")} * ({t("at_least_one_required")})</Label>
+            <Label>
+              {t("additional_images")} * ({t("at_least_one_required")})
+            </Label>
             {errors.images && (
               <p className="text-sm text-destructive mb-2">
                 {errors.images.message}
@@ -601,7 +680,12 @@ function AddProductPage() {
                 onChange={handleMultipleImagesChange}
               />
               <label htmlFor="multiple-images-upload">
-                <Button type="button" variant="outline" asChild className="cursor-pointer">
+                <Button
+                  type="button"
+                  variant="outline"
+                  asChild
+                  className="cursor-pointer"
+                >
                   <span>
                     <Upload className="mr-2 h-4 w-4" />
                     {t("select_images")}
@@ -665,7 +749,9 @@ function AddProductPage() {
                 )}
               />
               {errors.slug && (
-                <p className="text-sm text-destructive">{errors.slug.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.slug.message}
+                </p>
               )}
             </div>
 
@@ -689,7 +775,35 @@ function AddProductPage() {
                 )}
               />
               {errors.brand_id && (
-                <p className="text-sm text-destructive">{errors.brand_id.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.brand_id.message}
+                </p>
+              )}
+            </div>
+
+            {/* Brand Model */}
+            <div className="space-y-2">
+              <Label htmlFor="brand_model_id">{t("brand_model")}</Label>
+              <Controller
+                name="brand_model_id"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value?.toString() || ""}
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    placeholder={t("select_brand_model")}
+                    options={brandModels.map((model: any) => ({
+                      value: model.id.toString(),
+                      label: model.title,
+                    }))}
+                    disabled={loading || brandModelsLoading || !selectedBrandId}
+                  />
+                )}
+              />
+              {errors.brand_model_id && (
+                <p className="text-sm text-destructive">
+                  {errors.brand_model_id.message}
+                </p>
               )}
             </div>
 
@@ -715,7 +829,9 @@ function AddProductPage() {
                 )}
               />
               {errors.categories && (
-                <p className="text-sm text-destructive">{errors.categories.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.categories.message}
+                </p>
               )}
             </div>
 
@@ -733,14 +849,20 @@ function AddProductPage() {
                     options={
                       selectedCategories && selectedCategories.length > 0
                         ? flattenedCategories
-                            .filter((cat: any) => selectedCategories.includes(cat.id))
+                            .filter((cat: any) =>
+                              selectedCategories.includes(cat.id),
+                            )
                             .map((cat: any) => ({
                               value: cat.id.toString(),
                               label: cat.displayName,
                             }))
                         : []
                     }
-                    disabled={loading || !selectedCategories || selectedCategories.length === 0}
+                    disabled={
+                      loading ||
+                      !selectedCategories ||
+                      selectedCategories.length === 0
+                    }
                   />
                 )}
               />
@@ -760,14 +882,63 @@ function AddProductPage() {
                 render={({ field }) => (
                   <Input
                     {...field}
-                    value={field.value || 0}
+                    value={field.value ?? ""}
                     id="stock"
                     type="number"
-                    disabled
-                    readOnly
                   />
                 )}
               />
+            </div>
+
+            {/* Year */}
+            <div className="space-y-2">
+              <Label htmlFor="year">{t("year")}</Label>
+              <Controller
+                name="year"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value || ""}
+                    id="year"
+                    type="number"
+                    placeholder={t("year")}
+                    min={1900}
+                    max={new Date().getFullYear()}
+                  />
+                )}
+              />
+              {errors.year && (
+                <p className="text-sm text-destructive">
+                  {errors.year.message}
+                </p>
+              )}
+            </div>
+
+            {/* City */}
+            <div className="space-y-2">
+              <Label htmlFor="city_id">{t("city")}</Label>
+              <Controller
+                name="city_id"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value?.toString() || ""}
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    placeholder={t("select_city")}
+                    options={cities.map((city: any) => ({
+                      value: city.id.toString(),
+                      label: city.title,
+                    }))}
+                    disabled={loading}
+                  />
+                )}
+              />
+              {errors.city_id && (
+                <p className="text-sm text-destructive">
+                  {errors.city_id.message}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -796,86 +967,101 @@ function AddProductPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">{t("product_sets")}</h3>
-                <Button type="button" variant="outline" size="sm" onClick={addSet}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addSet}
+                >
                   <Upload className="mr-2 h-4 w-4" />
                   {t("add_set")}
                 </Button>
               </div>
-              {sets && sets.map((_: any, index: number) => (
-                <div key={index} className="rounded-lg border p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>{t("product")} *</Label>
-                      <Controller
-                        name={`sets.${index}.product_variant_id`}
-                        control={control}
-                        render={({ field }) => (
-                          <Autocomplete
-                            value={field.value?.toString() || ""}
-                            onValueChange={(value) => field.onChange(parseInt(value))}
-                            placeholder={t("search_product")}
-                            searchEndpoint="/product-variants/list?is_set=no"
-                            renderOption={(option: any) => (
-                              <div className="flex items-center gap-2">
-                                {option.product?.main_image && (
-                                  <img
-                                    src={option.product.main_image}
-                                    alt={option.product.title}
-                                    className="h-8 w-8 rounded object-cover"
-                                  />
-                                )}
-                                <span>
-                                  {option.product?.title} ({option.slug})
-                                </span>
-                              </div>
-                            )}
-                            getOptionLabel={(option: any) =>
-                              `${option.product?.title} (${option.slug})`
-                            }
-                            getOptionValue={(option: any) => option.id.toString()}
-                          />
-                        )}
-                      />
-                      {errors.sets?.[index] && (errors.sets[index] as any)?.product_variant_id && (
-                        <p className="text-sm text-destructive">
-                          {(errors.sets[index] as any)?.product_variant_id?.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>{t("quantity")} *</Label>
-                      <div className="flex gap-2">
+              {sets &&
+                sets.map((_: any, index: number) => (
+                  <div key={index} className="rounded-lg border p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t("product")} *</Label>
                         <Controller
-                          name={`sets.${index}.quantity`}
+                          name={`sets.${index}.product_variant_id`}
                           control={control}
                           render={({ field }) => (
-                            <Input
-                              {...field}
-                              value={field.value || ""}
-                              type="number"
-                              className="flex-1"
+                            <Autocomplete
+                              value={field.value?.toString() || ""}
+                              onValueChange={(value) =>
+                                field.onChange(parseInt(value))
+                              }
+                              placeholder={t("search_product")}
+                              searchEndpoint="/product-variants/list?is_set=no"
+                              renderOption={(option: any) => (
+                                <div className="flex items-center gap-2">
+                                  {option.product?.main_image && (
+                                    <img
+                                      src={option.product.main_image}
+                                      alt={option.product.title}
+                                      className="h-8 w-8 rounded object-cover"
+                                    />
+                                  )}
+                                  <span>
+                                    {option.product?.title} ({option.slug})
+                                  </span>
+                                </div>
+                              )}
+                              getOptionLabel={(option: any) =>
+                                `${option.product?.title} (${option.slug})`
+                              }
+                              getOptionValue={(option: any) =>
+                                option.id.toString()
+                              }
                             />
                           )}
                         />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => removeSet(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        {errors.sets?.[index] &&
+                          (errors.sets[index] as any)?.product_variant_id && (
+                            <p className="text-sm text-destructive">
+                              {
+                                (errors.sets[index] as any)?.product_variant_id
+                                  ?.message
+                              }
+                            </p>
+                          )}
                       </div>
-                      {errors.sets?.[index] && (errors.sets[index] as any)?.quantity && (
-                        <p className="text-sm text-destructive">
-                          {(errors.sets[index] as any)?.quantity?.message}
-                        </p>
-                      )}
+
+                      <div className="space-y-2">
+                        <Label>{t("quantity")} *</Label>
+                        <div className="flex gap-2">
+                          <Controller
+                            name={`sets.${index}.quantity`}
+                            control={control}
+                            render={({ field }) => (
+                              <Input
+                                {...field}
+                                value={field.value || ""}
+                                type="number"
+                                className="flex-1"
+                              />
+                            )}
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => removeSet(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        {errors.sets?.[index] &&
+                          (errors.sets[index] as any)?.quantity && (
+                            <p className="text-sm text-destructive">
+                              {(errors.sets[index] as any)?.quantity?.message}
+                            </p>
+                          )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
 
@@ -889,35 +1075,11 @@ function AddProductPage() {
                   render={({ field }) => (
                     <Input
                       {...field}
-                      value={field.value || 0}
+                      value={field.value ?? ""}
                       id="price"
                       type="number"
                       step="0.01"
-                      disabled
-                      readOnly
                     />
-                  )}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="uuid_1c">UUID 1C</Label>
-                <Controller
-                  name="uuid_1c"
-                  control={control}
-                  render={({ field }) => (
-                    <Input {...field} value={field.value || ""} id="uuid_1c" />
-                  )}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="variant_uuid_1c">Variant UUID 1C</Label>
-                <Controller
-                  name="variant_uuid_1c"
-                  control={control}
-                  render={({ field }) => (
-                    <Input {...field} value={field.value || ""} id="variant_uuid_1c" />
                   )}
                 />
               </div>
@@ -956,7 +1118,9 @@ function AddProductPage() {
                   )}
                 />
                 {errors.discount && (
-                  <p className="text-sm text-destructive">{errors.discount.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.discount.message}
+                  </p>
                 )}
               </div>
 
@@ -979,12 +1143,16 @@ function AddProductPage() {
                   )}
                 />
                 {errors.discount_type && (
-                  <p className="text-sm text-destructive">{errors.discount_type.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.discount_type.message}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="discount_start_at">{t("discount_start_date")} *</Label>
+                <Label htmlFor="discount_start_at">
+                  {t("discount_start_date")} *
+                </Label>
                 <Controller
                   name="discount_start_at"
                   control={control}
@@ -1004,7 +1172,9 @@ function AddProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="discount_end_at">{t("discount_end_date")} *</Label>
+                <Label htmlFor="discount_end_at">
+                  {t("discount_end_date")} *
+                </Label>
                 <Controller
                   name="discount_end_at"
                   control={control}
@@ -1040,15 +1210,25 @@ function AddProductPage() {
             </TabsList>
 
             {langs.map((lang: any, index: number) => (
-              <TabsContent key={lang.id} value={index.toString()} className="space-y-4">
+              <TabsContent
+                key={lang.id}
+                value={index.toString()}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
-                  <Label htmlFor={`title_${index}`}>{t("title")} {index === 0 && "*"}</Label>
+                  <Label htmlFor={`title_${index}`}>
+                    {t("title")} {index === 0 && "*"}
+                  </Label>
                   <Controller
                     name={`translations.${index}.title`}
                     control={control}
-                  render={({ field }) => (
-                    <Input {...field} value={field.value || ""} id={`title_${index}`} />
-                  )}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        value={field.value || ""}
+                        id={`title_${index}`}
+                      />
+                    )}
                   />
                   {errors.translations?.[index]?.title && (
                     <p className="text-sm text-destructive">
@@ -1082,7 +1262,9 @@ function AddProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`description_${index}`}>{t("description")}</Label>
+                  <Label htmlFor={`description_${index}`}>
+                    {t("description")}
+                  </Label>
                   <Controller
                     name={`translations.${index}.description`}
                     control={control}
@@ -1145,7 +1327,7 @@ function AddProductPage() {
                 value=""
                 onValueChange={(value) => {
                   const selectedOption = productOptions.find(
-                    (opt: any) => opt.id === parseInt(value)
+                    (opt: any) => String(opt.id) === value,
                   );
                   if (selectedOption) {
                     addOption(selectedOption);
@@ -1166,7 +1348,10 @@ function AddProductPage() {
               {options.map((selectedOption: any, optionIndex: number) => {
                 const productOption = selectedOption.option;
                 return (
-                  <div key={optionIndex} className="rounded-lg border p-4 space-y-4">
+                  <div
+                    key={optionIndex}
+                    className="rounded-lg border p-4 space-y-4"
+                  >
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold">
                         {productOption.title}
@@ -1199,14 +1384,19 @@ function AddProductPage() {
                                   value={field.value?.toString() || ""}
                                   onValueChange={field.onChange}
                                   placeholder={t("select")}
-                                  options={productOption.items.map((item: any) => ({
-                                    value: item.id.toString(),
-                                    label: item.title,
-                                  }))}
+                                  options={productOption.items.map(
+                                    (item: any) => ({
+                                      value: item.id.toString(),
+                                      label: item.title,
+                                    }),
+                                  )}
                                 />
                                 {errors.options?.[optionIndex]?.value && (
                                   <p className="text-sm text-destructive">
-                                    {errors.options[optionIndex]?.value?.message}
+                                    {
+                                      errors.options[optionIndex]?.value
+                                        ?.message
+                                    }
                                   </p>
                                 )}
                               </div>
@@ -1227,7 +1417,10 @@ function AddProductPage() {
                                 />
                                 {errors.options?.[optionIndex]?.value && (
                                   <p className="text-sm text-destructive">
-                                    {errors.options[optionIndex]?.value?.message}
+                                    {
+                                      errors.options[optionIndex]?.value
+                                        ?.message
+                                    }
                                   </p>
                                 )}
                               </div>
@@ -1240,7 +1433,9 @@ function AddProductPage() {
                     {/* Translatable options */}
                     {productOption.is_translatable && (
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">{t("translations")}</Label>
+                        <Label className="text-sm font-medium">
+                          {t("translations")}
+                        </Label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {langs.map((lang: any, langIndex: number) => (
                             <div key={lang.id} className="space-y-2">
@@ -1257,10 +1452,12 @@ function AddProductPage() {
                                         value={field.value?.toString() || ""}
                                         onValueChange={field.onChange}
                                         placeholder={t("select")}
-                                        options={productOption.items.map((item: any) => ({
-                                          value: item.id.toString(),
-                                          label: item.title,
-                                        }))}
+                                        options={productOption.items.map(
+                                          (item: any) => ({
+                                            value: item.id.toString(),
+                                            label: item.title,
+                                          }),
+                                        )}
                                       />
                                     </div>
                                   )}
@@ -1274,7 +1471,10 @@ function AddProductPage() {
                                       <Label className="text-xs">
                                         {productOption.title} ({lang.key})
                                       </Label>
-                                      <Input {...field} value={field.value || ""} />
+                                      <Input
+                                        {...field}
+                                        value={field.value || ""}
+                                      />
                                     </div>
                                   )}
                                 />

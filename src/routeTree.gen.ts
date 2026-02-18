@@ -20,7 +20,11 @@ import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index
 import { Route as AppProductsIndexRouteImport } from './routes/_app/products/index'
 import { Route as AppProductsAddIndexRouteImport } from './routes/_app/products/add/index'
 import { Route as AppProductsProductIdIndexRouteImport } from './routes/_app/products/$productId/index'
+import { Route as AppProductsVariantsProductIdIndexRouteImport } from './routes/_app/products/variants/$productId/index'
 import { Route as AppProductsEditProductIdIndexRouteImport } from './routes/_app/products/edit/$productId/index'
+import { Route as AppProductsVariantsProductIdAddIndexRouteImport } from './routes/_app/products/variants/$productId/add/index'
+import { Route as AppProductsVariantsProductIdShowVariantIdIndexRouteImport } from './routes/_app/products/variants/$productId/show/$variantId/index'
+import { Route as AppProductsVariantsProductIdEditVariantIdIndexRouteImport } from './routes/_app/products/variants/$productId/edit/$variantId/index'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -77,10 +81,34 @@ const AppProductsProductIdIndexRoute =
     path: '/products/$productId/',
     getParentRoute: () => AppRoute,
   } as any)
+const AppProductsVariantsProductIdIndexRoute =
+  AppProductsVariantsProductIdIndexRouteImport.update({
+    id: '/products/variants/$productId/',
+    path: '/products/variants/$productId/',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProductsEditProductIdIndexRoute =
   AppProductsEditProductIdIndexRouteImport.update({
     id: '/products/edit/$productId/',
     path: '/products/edit/$productId/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppProductsVariantsProductIdAddIndexRoute =
+  AppProductsVariantsProductIdAddIndexRouteImport.update({
+    id: '/products/variants/$productId/add/',
+    path: '/products/variants/$productId/add/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppProductsVariantsProductIdShowVariantIdIndexRoute =
+  AppProductsVariantsProductIdShowVariantIdIndexRouteImport.update({
+    id: '/products/variants/$productId/show/$variantId/',
+    path: '/products/variants/$productId/show/$variantId/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppProductsVariantsProductIdEditVariantIdIndexRoute =
+  AppProductsVariantsProductIdEditVariantIdIndexRouteImport.update({
+    id: '/products/variants/$productId/edit/$variantId/',
+    path: '/products/variants/$productId/edit/$variantId/',
     getParentRoute: () => AppRoute,
   } as any)
 
@@ -96,6 +124,10 @@ export interface FileRoutesByFullPath {
   '/products/$productId/': typeof AppProductsProductIdIndexRoute
   '/products/add/': typeof AppProductsAddIndexRoute
   '/products/edit/$productId/': typeof AppProductsEditProductIdIndexRoute
+  '/products/variants/$productId/': typeof AppProductsVariantsProductIdIndexRoute
+  '/products/variants/$productId/add/': typeof AppProductsVariantsProductIdAddIndexRoute
+  '/products/variants/$productId/edit/$variantId/': typeof AppProductsVariantsProductIdEditVariantIdIndexRoute
+  '/products/variants/$productId/show/$variantId/': typeof AppProductsVariantsProductIdShowVariantIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
@@ -109,6 +141,10 @@ export interface FileRoutesByTo {
   '/products/$productId': typeof AppProductsProductIdIndexRoute
   '/products/add': typeof AppProductsAddIndexRoute
   '/products/edit/$productId': typeof AppProductsEditProductIdIndexRoute
+  '/products/variants/$productId': typeof AppProductsVariantsProductIdIndexRoute
+  '/products/variants/$productId/add': typeof AppProductsVariantsProductIdAddIndexRoute
+  '/products/variants/$productId/edit/$variantId': typeof AppProductsVariantsProductIdEditVariantIdIndexRoute
+  '/products/variants/$productId/show/$variantId': typeof AppProductsVariantsProductIdShowVariantIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,6 +160,10 @@ export interface FileRoutesById {
   '/_app/products/$productId/': typeof AppProductsProductIdIndexRoute
   '/_app/products/add/': typeof AppProductsAddIndexRoute
   '/_app/products/edit/$productId/': typeof AppProductsEditProductIdIndexRoute
+  '/_app/products/variants/$productId/': typeof AppProductsVariantsProductIdIndexRoute
+  '/_app/products/variants/$productId/add/': typeof AppProductsVariantsProductIdAddIndexRoute
+  '/_app/products/variants/$productId/edit/$variantId/': typeof AppProductsVariantsProductIdEditVariantIdIndexRoute
+  '/_app/products/variants/$productId/show/$variantId/': typeof AppProductsVariantsProductIdShowVariantIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,6 +179,10 @@ export interface FileRouteTypes {
     | '/products/$productId/'
     | '/products/add/'
     | '/products/edit/$productId/'
+    | '/products/variants/$productId/'
+    | '/products/variants/$productId/add/'
+    | '/products/variants/$productId/edit/$variantId/'
+    | '/products/variants/$productId/show/$variantId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -152,6 +196,10 @@ export interface FileRouteTypes {
     | '/products/$productId'
     | '/products/add'
     | '/products/edit/$productId'
+    | '/products/variants/$productId'
+    | '/products/variants/$productId/add'
+    | '/products/variants/$productId/edit/$variantId'
+    | '/products/variants/$productId/show/$variantId'
   id:
     | '__root__'
     | '/_app'
@@ -166,6 +214,10 @@ export interface FileRouteTypes {
     | '/_app/products/$productId/'
     | '/_app/products/add/'
     | '/_app/products/edit/$productId/'
+    | '/_app/products/variants/$productId/'
+    | '/_app/products/variants/$productId/add/'
+    | '/_app/products/variants/$productId/edit/$variantId/'
+    | '/_app/products/variants/$productId/show/$variantId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -252,11 +304,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProductsProductIdIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/products/variants/$productId/': {
+      id: '/_app/products/variants/$productId/'
+      path: '/products/variants/$productId'
+      fullPath: '/products/variants/$productId/'
+      preLoaderRoute: typeof AppProductsVariantsProductIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/products/edit/$productId/': {
       id: '/_app/products/edit/$productId/'
       path: '/products/edit/$productId'
       fullPath: '/products/edit/$productId/'
       preLoaderRoute: typeof AppProductsEditProductIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/products/variants/$productId/add/': {
+      id: '/_app/products/variants/$productId/add/'
+      path: '/products/variants/$productId/add'
+      fullPath: '/products/variants/$productId/add/'
+      preLoaderRoute: typeof AppProductsVariantsProductIdAddIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/products/variants/$productId/show/$variantId/': {
+      id: '/_app/products/variants/$productId/show/$variantId/'
+      path: '/products/variants/$productId/show/$variantId'
+      fullPath: '/products/variants/$productId/show/$variantId/'
+      preLoaderRoute: typeof AppProductsVariantsProductIdShowVariantIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/products/variants/$productId/edit/$variantId/': {
+      id: '/_app/products/variants/$productId/edit/$variantId/'
+      path: '/products/variants/$productId/edit/$variantId'
+      fullPath: '/products/variants/$productId/edit/$variantId/'
+      preLoaderRoute: typeof AppProductsVariantsProductIdEditVariantIdIndexRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -269,6 +349,10 @@ interface AppRouteChildren {
   AppProductsProductIdIndexRoute: typeof AppProductsProductIdIndexRoute
   AppProductsAddIndexRoute: typeof AppProductsAddIndexRoute
   AppProductsEditProductIdIndexRoute: typeof AppProductsEditProductIdIndexRoute
+  AppProductsVariantsProductIdIndexRoute: typeof AppProductsVariantsProductIdIndexRoute
+  AppProductsVariantsProductIdAddIndexRoute: typeof AppProductsVariantsProductIdAddIndexRoute
+  AppProductsVariantsProductIdEditVariantIdIndexRoute: typeof AppProductsVariantsProductIdEditVariantIdIndexRoute
+  AppProductsVariantsProductIdShowVariantIdIndexRoute: typeof AppProductsVariantsProductIdShowVariantIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -278,6 +362,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppProductsProductIdIndexRoute: AppProductsProductIdIndexRoute,
   AppProductsAddIndexRoute: AppProductsAddIndexRoute,
   AppProductsEditProductIdIndexRoute: AppProductsEditProductIdIndexRoute,
+  AppProductsVariantsProductIdIndexRoute:
+    AppProductsVariantsProductIdIndexRoute,
+  AppProductsVariantsProductIdAddIndexRoute:
+    AppProductsVariantsProductIdAddIndexRoute,
+  AppProductsVariantsProductIdEditVariantIdIndexRoute:
+    AppProductsVariantsProductIdEditVariantIdIndexRoute,
+  AppProductsVariantsProductIdShowVariantIdIndexRoute:
+    AppProductsVariantsProductIdShowVariantIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

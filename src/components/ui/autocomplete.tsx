@@ -14,6 +14,7 @@ interface AutocompleteProps {
   getOptionValue: (option: any) => string;
   disabled?: boolean;
   className?: string;
+  initialOption?: any;
 }
 
 export function Autocomplete({
@@ -26,15 +27,23 @@ export function Autocomplete({
   getOptionValue,
   disabled = false,
   className,
+  initialOption,
 }: AutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [options, setOptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<any>(null);
+  const [selectedOption, setSelectedOption] = useState<any>(initialOption || null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Set selectedOption from initialOption when it arrives
+  useEffect(() => {
+    if (initialOption && !selectedOption) {
+      setSelectedOption(initialOption);
+    }
+  }, [initialOption]);
 
   // Debounce search
   useEffect(() => {
@@ -83,10 +92,11 @@ export function Autocomplete({
   useEffect(() => {
     if (value && options.length > 0) {
       const option = options.find((opt) => getOptionValue(opt) === value);
-      setSelectedOption(option || null);
-    } else {
+      if (option) setSelectedOption(option);
+    } else if (!value) {
       setSelectedOption(null);
     }
+    // If value exists but options are empty (not yet loaded), keep existing selectedOption
   }, [value, options, getOptionValue]);
 
   // Close dropdown when clicking outside
