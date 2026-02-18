@@ -19,6 +19,8 @@ import {
   Eye,
   Plus,
   ArrowLeft,
+  History,
+  RefreshCw,
 } from "lucide-react";
 import Modal from "@/components/ui/modal";
 import DeleteModal from "@/components/ui/delete-modal";
@@ -44,6 +46,15 @@ function ProductVariantsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyVariant, setHistoryVariant] = useState<any>(null);
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const [isResendConfirmOpen, setIsResendConfirmOpen] = useState(false);
+  const [resendVariant, setResendVariant] = useState<any>(null);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const fetchData = async (params?: { page?: number; search?: string }) => {
     setLoading(true);
@@ -110,6 +121,46 @@ function ProductVariantsPage() {
       toast.error(error?.response?.data?.message || t("error_deleting"));
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const handleHistoryClick = async (variant: any) => {
+    setHistoryVariant(variant);
+    setHistoryList([]);
+    setIsHistoryModalOpen(true);
+    setHistoryLoading(true);
+    try {
+      const res = await controlPrivateApi.get(
+        `/product-variants/${variant.id}/approval-status/history`
+      );
+      setHistoryList(res.data.data || []);
+    } catch {
+      toast.error(t("error_loading_data"));
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleResendClick = (variant: any) => {
+    setResendVariant(variant);
+    setIsResendConfirmOpen(true);
+  };
+
+  const handleResendConfirm = async () => {
+    if (!resendVariant) return;
+    setResendLoading(true);
+    try {
+      await controlPrivateApi.post(
+        `/product-variants/${resendVariant.id}/approval-status/resend`
+      );
+      toast.success(t("resend_success"));
+      setIsResendConfirmOpen(false);
+      setResendVariant(null);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || t("error_updating_status"));
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -243,6 +294,24 @@ function ProductVariantsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        title={t("history")}
+                        onClick={() => handleHistoryClick(item)}
+                      >
+                        <History className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      {item.approval_status === "rejected" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title={t("resend")}
+                          onClick={() => handleResendClick(item)}
+                        >
+                          <RefreshCw className="h-4 w-4 text-blue-500" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleDeleteClick(item)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -299,6 +368,90 @@ function ProductVariantsPage() {
           handleDelete={handleDelete}
           pending={deleteLoading}
         />
+      </Modal>
+
+      {/* History Modal */}
+      <Modal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        title={`${historyVariant?.slug ?? ""} — ${t("history")}`}
+        size="lg"
+      >
+        {historyLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : historyList.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">
+            {t("no_data_found")}
+          </p>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>No</TableHead>
+                  <TableHead>{t("approval_status")}</TableHead>
+                  <TableHead>{t("message")}</TableHead>
+                  <TableHead>{t("created_by")}</TableHead>
+                  <TableHead>{t("date")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {historyList.map((h, idx) => (
+                  <TableRow key={h.id}>
+                    <TableCell>{idx + 1}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          h.approval_status === "approved"
+                            ? "default"
+                            : h.approval_status === "rejected"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
+                        {h.approval_status_label ?? h.approval_status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {h.approval_status_message ?? "—"}
+                    </TableCell>
+                    <TableCell>{h.created_user}</TableCell>
+                    <TableCell>{h.created_date}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </Modal>
+
+      {/* Resend Confirmation Modal */}
+      <Modal
+        isOpen={isResendConfirmOpen}
+        onClose={() => !resendLoading && setIsResendConfirmOpen(false)}
+        title={t("resend")}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {t("resend_confirm_message")}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsResendConfirmOpen(false)}
+              disabled={resendLoading}
+            >
+              {t("cancel")}
+            </Button>
+            <Button onClick={handleResendConfirm} disabled={resendLoading}>
+              {resendLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("resend")}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
