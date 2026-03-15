@@ -11,10 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
-import { ArrowLeft, Loader2, X } from "lucide-react";
+import { ArrowLeft, Loader2, Search, X, Link2, Plus } from "lucide-react";
 import { useTranslationStore } from "@/store/translations";
 import { FileInput } from "@/components/ui/file-input";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
+import { Badge } from "@/components/ui/badge";
+import type { CatalogSearchItem } from "@/lib/queries/products";
+import { searchCatalog } from "@/lib/queries/products";
 
 export const Route = createFileRoute(
   "/_app/products/variants/$productId/add/"
@@ -22,35 +25,49 @@ export const Route = createFileRoute(
   component: AddProductVariantPage,
 });
 
+type Step = "search" | "add-new" | "attach";
+
 function AddProductVariantPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { productId } = useParams({ from: "/_app/products/variants/$productId/add/" });
   const langs = useTranslationStore((state) => state.langs);
 
-  const validationSchema = Yup.object().shape({
-    main_image: Yup.object()
-      .test("has-file", t("required_field"), function (value: any) {
-        return value && value.file && value.file instanceof File;
-      })
+  // Step management
+  const [step, setStep] = useState<Step>("search");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchToken, setSearchToken] = useState<string | null>(null);
+  const [catalogResults, setCatalogResults] = useState<CatalogSearchItem[]>([]);
+  const [selectedVariantForAttach, setSelectedVariantForAttach] = useState<CatalogSearchItem | null>(null);
+
+  // Shared state
+  const [discountTypes, setDiscountTypes] = useState<any[]>([]);
+  const [productOptions, setProductOptions] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
+  const [brandModels, setBrandModels] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [brandModelsLoading, setBrandModelsLoading] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Image state for add-new
+  const [mainImage, setMainImage] = useState<any>({});
+  const [hoverImage, setHoverImage] = useState<any>({});
+  const [images, setImages] = useState<any[]>([{}]);
+
+  // Image state for attach
+  const [attachImages, setAttachImages] = useState<any[]>([{}]);
+
+  // ─── Validation schemas ───────────────────────────────────────────────────
+
+  const addNewSchema = Yup.object().shape({
+    brand_model_id: Yup.number().required(t("required_field")),
+    year: Yup.number()
+      .transform((value, originalValue) => (originalValue === "" ? undefined : value))
       .required(t("required_field")),
-    hover_image: Yup.object()
-      .test("optional-file", t("invalid_file"), function (value: any) {
-        if (!value || Object.keys(value).length === 0) return true;
-        return value.file && value.file instanceof File;
-      })
-      .notRequired(),
-    images: Yup.array()
-      .of(
-        Yup.object().test("has-file", t("required_field"), function (value: any) {
-          return value && value.file && value.file instanceof File;
-        })
-      )
-      .test("at-least-one", t("at_least_one_image_required"), function (value: any) {
-        if (!value || !Array.isArray(value)) return false;
-        return value.some((image: any) => image && image.file && image.file instanceof File);
-      })
-      .required(t("required_field")),
+    oem_code: Yup.string().notRequired(),
+    city_id: Yup.number().required(t("required_field")),
     stock: Yup.number().notRequired(),
     price: Yup.string().notRequired(),
     has_discount: Yup.boolean().notRequired(),
@@ -75,11 +92,6 @@ function AddProductVariantPage() {
       otherwise: (schema) => schema.notRequired(),
     }),
     brand_id: Yup.number().notRequired(),
-    brand_model_id: Yup.number().notRequired(),
-    year: Yup.number()
-      .transform((value, originalValue) => (originalValue === "" ? undefined : value))
-      .notRequired(),
-    city_id: Yup.number().notRequired(),
     options: Yup.array()
       .of(
         Yup.object({
@@ -98,82 +110,85 @@ function AddProductVariantPage() {
       .notRequired(),
   });
 
-  const [discountTypes, setDiscountTypes] = useState<any[]>([]);
-  const [productOptions, setProductOptions] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
-  const [brandModels, setBrandModels] = useState<any[]>([]);
-  const [brands, setBrands] = useState<any[]>([]);
-  const [brandModelsLoading, setBrandModelsLoading] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const attachSchema = Yup.object().shape({
+    price: Yup.string().required(t("required_field")),
+    stock: Yup.number().notRequired(),
+    city_id: Yup.number().notRequired(),
+    has_discount: Yup.boolean().notRequired(),
+    discount: Yup.string().when("has_discount", {
+      is: true,
+      then: (schema) => schema.required(t("required_field")),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    discount_type: Yup.string().when("has_discount", {
+      is: true,
+      then: (schema) => schema.required(t("required_field")),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    discount_start_at: Yup.date().when("has_discount", {
+      is: true,
+      then: (schema) => schema.required(t("required_field")),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    discount_end_at: Yup.date().when("has_discount", {
+      is: true,
+      then: (schema) => schema.required(t("required_field")),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+  });
 
-  const [mainImage, setMainImage] = useState<any>({});
-  const [hoverImage, setHoverImage] = useState<any>({});
-  const [images, setImages] = useState<any[]>([{}]);
+  // ─── Forms ───────────────────────────────────────────────────────────────
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-    getValues,
-  } = useForm({
-    resolver: yupResolver(validationSchema),
+  const addNewForm = useForm({
+    resolver: yupResolver(addNewSchema),
     defaultValues: {
-      main_image: {},
-      hover_image: {},
-      images: [{}],
+      brand_id: undefined as number | undefined,
+      brand_model_id: undefined as number | undefined,
+      year: "" as any,
+      oem_code: "",
+      city_id: undefined as number | undefined,
       stock: "" as any,
       price: "",
       has_discount: false,
       discount: "",
       discount_type: "",
-      discount_start_at: undefined,
-      discount_end_at: undefined,
-      brand_id: undefined,
-      brand_model_id: undefined,
-      year: "" as any,
-      city_id: undefined,
-      options: [],
+      discount_start_at: undefined as Date | undefined,
+      discount_end_at: undefined as Date | undefined,
+      options: [] as any[],
     },
   });
 
-  const hasDiscount = watch("has_discount");
-  const options = watch("options");
-  const selectedBrandId = watch("brand_id");
+  const attachForm = useForm({
+    resolver: yupResolver(attachSchema),
+    defaultValues: {
+      price: "",
+      stock: "" as any,
+      city_id: undefined as number | undefined,
+      has_discount: false,
+      discount: "",
+      discount_type: "",
+      discount_start_at: undefined as Date | undefined,
+      discount_end_at: undefined as Date | undefined,
+    },
+  });
+
+  const hasDiscountAdd = addNewForm.watch("has_discount");
+  const hasDiscountAttach = attachForm.watch("has_discount");
+  const options = addNewForm.watch("options");
+  const selectedBrandId = addNewForm.watch("brand_id");
+
+  // ─── Load helper data ─────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!selectedBrandId) {
-      setBrandModels([]);
-      setValue("brand_model_id", undefined);
-      return;
-    }
-    const fetchBrandModels = async () => {
-      setBrandModelsLoading(true);
-      try {
-        const res = await controlPrivateApi.get(`/brands/${selectedBrandId}/models/list`);
-        setBrandModels(res.data.data || []);
-      } catch {
-        setBrandModels([]);
-      } finally {
-        setBrandModelsLoading(false);
-      }
-    };
-    setValue("brand_model_id", undefined);
-    fetchBrandModels();
-  }, [selectedBrandId, setValue]);
-
-  useEffect(() => {
-    const fetchData = async () => {
+    const fetchHelperData = async () => {
       setLoading(true);
       try {
         const [discountTypesRes, productOptionsRes, countriesRes, brandsRes] =
           await Promise.all([
-            controlPrivateApi.get("/discount-types/list").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get("/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get("/countries/list?with_cities=yes").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get("/brands/list").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/sellers/discount-types/list").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/sellers/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/sellers/countries/list?with_cities=yes").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/sellers/brands/list").catch(() => ({ data: { data: [] } })),
           ]);
 
         setDiscountTypes(discountTypesRes.data.data || []);
@@ -199,7 +214,7 @@ function AddProductVariantPage() {
               }))
             : undefined,
         }));
-        setValue("options", initialOptions);
+        addNewForm.setValue("options", initialOptions);
       } catch {
         toast.error(t("failed_to_load_data"));
       } finally {
@@ -207,42 +222,105 @@ function AddProductVariantPage() {
       }
     };
 
-    fetchData();
-  }, [langs, setValue]);
+    fetchHelperData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [langs]);
+
+  useEffect(() => {
+    if (!selectedBrandId) {
+      setBrandModels([]);
+      addNewForm.setValue("brand_model_id", undefined);
+      return;
+    }
+    const fetchBrandModels = async () => {
+      setBrandModelsLoading(true);
+      try {
+        const res = await controlPrivateApi.get(`/sellers/brands/${selectedBrandId}/models/list`);
+        setBrandModels(res.data.data || []);
+      } catch {
+        setBrandModels([]);
+      } finally {
+        setBrandModelsLoading(false);
+      }
+    };
+    addNewForm.setValue("brand_model_id", undefined);
+    fetchBrandModels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBrandId]);
+
+  // ─── Catalog search ───────────────────────────────────────────────────────
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearchLoading(true);
+    setCatalogResults([]);
+    setSearchToken(null);
+    try {
+      const result = await searchCatalog({ search: searchQuery, product_id: Number(productId) });
+      setSearchToken(result.search_token);
+      setCatalogResults(result.data.data || []);
+    } catch {
+      toast.error(t("error_loading_data"));
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleAttachClick = (item: CatalogSearchItem) => {
+    if (item.already_attached) {
+      toast.error(t("already_attached"));
+      return;
+    }
+    setSelectedVariantForAttach(item);
+    setStep("attach");
+  };
+
+  const handleAddNew = () => {
+    if (!searchToken) {
+      toast.error(t("search_required_before_add"));
+      return;
+    }
+    setStep("add-new");
+  };
+
+  // ─── Image helpers ────────────────────────────────────────────────────────
 
   const handleMainImageChange = (newImage: any) => {
     setMainImage(newImage);
-    setValue("main_image", newImage);
+    addNewForm.setValue("main_image" as any, newImage);
   };
 
   const handleHoverImageChange = (newImage: any) => {
     setHoverImage(newImage);
-    setValue("hover_image", newImage);
+    addNewForm.setValue("hover_image" as any, newImage);
   };
 
   const handleImageChange = (index: number, newImage: any) => {
     const newImages = [...images];
     newImages[index] = newImage;
     setImages(newImages);
-    setValue("images", newImages);
   };
 
-  const addImage = () => {
-    const newImages = [...images, {}];
-    setImages(newImages);
-    setValue("images", newImages);
-  };
-
+  const addImage = () => setImages([...images, {}]);
   const removeImage = (index: number) => {
-    if (images.length > 1) {
-      const newImages = images.filter((_, i) => i !== index);
-      setImages(newImages);
-      setValue("images", newImages);
-    }
+    if (images.length > 1) setImages(images.filter((_, i) => i !== index));
   };
+
+  const handleAttachImageChange = (index: number, newImage: any) => {
+    const newImages = [...attachImages];
+    newImages[index] = newImage;
+    setAttachImages(newImages);
+  };
+
+  const addAttachImage = () => setAttachImages([...attachImages, {}]);
+  const removeAttachImage = (index: number) => {
+    if (attachImages.length > 1) setAttachImages(attachImages.filter((_, i) => i !== index));
+  };
+
+  // ─── Option helpers ───────────────────────────────────────────────────────
 
   const addOption = (productOption: any) => {
-    const currentOptions = getValues("options") || [];
+    const currentOptions = addNewForm.getValues("options") || [];
     const newOption = {
       option_id: productOption.id,
       option: productOption,
@@ -254,29 +332,35 @@ function AddProductVariantPage() {
           }))
         : undefined,
     };
-    setValue("options", [...currentOptions, newOption]);
+    addNewForm.setValue("options", [...currentOptions, newOption]);
   };
 
   const removeOption = (index: number) => {
-    const currentOptions = getValues("options") || [];
+    const currentOptions = addNewForm.getValues("options") || [];
     const optionToRemove = currentOptions[index] as any;
     if (optionToRemove?.option?.is_required) {
       toast.error(t("cannot_remove_required_option"));
       return;
     }
-    setValue(
+    addNewForm.setValue(
       "options",
       currentOptions.filter((_, i) => i !== index)
     );
   };
 
   const getAvailableOptions = () => {
-    const currentOptions = getValues("options") || [];
+    const currentOptions = addNewForm.getValues("options") || [];
     const selectedOptionIds = currentOptions.map((opt: any) => opt.option_id);
     return productOptions.filter((option: any) => !selectedOptionIds.includes(option.id));
   };
 
-  const onSubmit = async (data: any) => {
+  // ─── Submit: Add new variant ──────────────────────────────────────────────
+
+  const onSubmitAddNew = async (data: any) => {
+    if (!searchToken) {
+      toast.error(t("search_required_before_add"));
+      return;
+    }
     if (pending) return;
     setPending(true);
 
@@ -284,12 +368,13 @@ function AddProductVariantPage() {
       const formData = new FormData();
 
       const basicFields: any = {
+        brand_model_id: data.brand_model_id,
+        year: data.year,
+        oem_code: data.oem_code || null,
+        city_id: data.city_id,
         stock: data.stock,
         price: data.price,
         has_discount: data.has_discount,
-        year: data.year || null,
-        city_id: data.city_id || null,
-        brand_model_id: data.brand_model_id || null,
       };
 
       if (data.has_discount) {
@@ -304,7 +389,7 @@ function AddProductVariantPage() {
       }
 
       Object.keys(basicFields).forEach((key) => {
-        if (basicFields[key] !== null && basicFields[key] !== undefined) {
+        if (basicFields[key] !== null && basicFields[key] !== undefined && basicFields[key] !== "") {
           const value =
             typeof basicFields[key] === "boolean"
               ? basicFields[key] ? "1" : "0"
@@ -313,19 +398,12 @@ function AddProductVariantPage() {
         }
       });
 
-      if (data.main_image?.file) {
-        formData.append("main_image", data.main_image.file);
-      }
-      if (data.hover_image?.file) {
-        formData.append("hover_image", data.hover_image.file);
-      }
-      if (data.images && data.images.length > 0) {
-        data.images.forEach((image: any, index: number) => {
-          if (image?.file) {
-            formData.append(`images[${index}]`, image.file);
-          }
-        });
-      }
+      if (mainImage?.file) formData.append("main_image", mainImage.file);
+      if (hoverImage?.file) formData.append("hover_image", hoverImage.file);
+
+      images.forEach((image: any, index: number) => {
+        if (image?.file) formData.append(`images[${index}]`, image.file);
+      });
 
       if (data.options && data.options.length > 0) {
         data.options.forEach((option: any, index: number) => {
@@ -335,34 +413,37 @@ function AddProductVariantPage() {
               if (option.value !== null && option.value !== undefined && option.value !== "") {
                 formData.append(`options[${index}][value]`, option.value);
               }
-            } else {
-              if (option.translations && option.translations.length > 0) {
-                option.translations.forEach((translation: any, transIndex: number) => {
-                  if (translation.language_id) {
-                    formData.append(
-                      `options[${index}][translations][${transIndex}][language_id]`,
-                      translation.language_id
-                    );
-                  }
-                  if (translation.translatable_value) {
-                    formData.append(
-                      `options[${index}][translations][${transIndex}][translatable_value]`,
-                      translation.translatable_value
-                    );
-                  }
-                });
-              }
+            } else if (option.translations && option.translations.length > 0) {
+              option.translations.forEach((translation: any, transIndex: number) => {
+                if (translation.language_id) {
+                  formData.append(
+                    `options[${index}][translations][${transIndex}][language_id]`,
+                    translation.language_id
+                  );
+                }
+                if (translation.translatable_value) {
+                  formData.append(
+                    `options[${index}][translations][${transIndex}][translatable_value]`,
+                    translation.translatable_value
+                  );
+                }
+              });
             }
           }
         });
       }
 
       const res = await controlPrivateApi.post(
-        `/product-variants/add/${productId}`,
+        `/sellers/product-variants/add/${productId}`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "X-Search-Token": searchToken,
+          },
+        }
       );
-      toast.success(res.data.message);
+      toast.success(res.data.message || t("variant_added_successfully"));
       navigate({ to: `/products/variants/${productId}` });
     } catch (error: any) {
       toast.error(error?.response?.data?.message || t("error_saving"));
@@ -371,59 +452,411 @@ function AddProductVariantPage() {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Link to="/products/variants/$productId" params={{ productId }}>
-          <Button variant="ghost" size="icon">
+  // ─── Submit: Attach to existing variant ───────────────────────────────────
+
+  const onSubmitAttach = async (data: any) => {
+    if (!searchToken || !selectedVariantForAttach) return;
+    if (pending) return;
+    setPending(true);
+
+    try {
+      const formData = new FormData();
+
+      const basicFields: any = {
+        price: data.price,
+        stock: data.stock,
+        city_id: data.city_id || null,
+        has_discount: data.has_discount,
+      };
+
+      if (data.has_discount) {
+        basicFields.discount = data.discount || null;
+        basicFields.discount_type = data.discount_type || null;
+        basicFields.discount_start_at = data.discount_start_at
+          ? new Date(data.discount_start_at).toISOString().split("T")[0]
+          : null;
+        basicFields.discount_end_at = data.discount_end_at
+          ? new Date(data.discount_end_at).toISOString().split("T")[0]
+          : null;
+      }
+
+      Object.keys(basicFields).forEach((key) => {
+        if (basicFields[key] !== null && basicFields[key] !== undefined && basicFields[key] !== "") {
+          const value =
+            typeof basicFields[key] === "boolean"
+              ? basicFields[key] ? "1" : "0"
+              : basicFields[key];
+          formData.append(key, value);
+        }
+      });
+
+      attachImages.forEach((image: any, index: number) => {
+        if (image?.file) formData.append(`images[${index}]`, image.file);
+      });
+
+      const res = await controlPrivateApi.post(
+        `/sellers/company-product-variants/attach/${selectedVariantForAttach.id}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "X-Search-Token": searchToken,
+          },
+        }
+      );
+      toast.success(res.data.message || t("variant_attached_successfully"));
+      navigate({ to: `/products/variants/${productId}` });
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || t("error_saving"));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  // ─── Render: Step 1 — Catalog Search ─────────────────────────────────────
+
+  if (step === "search") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <Link to="/products/variants/$productId" params={{ productId }}>
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold">{t("add_product_variant")}</h1>
+        </div>
+
+        <div className="rounded-lg border p-6 space-y-4">
+          <h2 className="text-lg font-semibold">{t("search_catalog")}</h2>
+          <p className="text-sm text-muted-foreground">{t("search_catalog_description")}</p>
+
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={t("search_by_title_or_oem")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={handleSearch} disabled={searchLoading || !searchQuery.trim()}>
+              {searchLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+
+          {catalogResults.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{t("search_results")}</p>
+              <div className="rounded-md border divide-y">
+                {catalogResults.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{item.title}</span>
+                        {item.already_attached && (
+                          <Badge variant="secondary">{t("already_attached")}</Badge>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                        {item.oem_code && <span>OEM: {item.oem_code}</span>}
+                        {item.brand_model && <span>{item.brand_model.title}</span>}
+                        {item.year && <span>{item.year}</span>}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={item.already_attached}
+                      onClick={() => handleAttachClick(item)}
+                    >
+                      <Link2 className="mr-2 h-3 w-3" />
+                      {t("attach")}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {searchToken && (
+            <div className="pt-2 border-t">
+              <Button onClick={handleAddNew} variant="outline" className="w-full">
+                <Plus className="mr-2 h-4 w-4" />
+                {t("add_new_variant_not_found")}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Render: Step 2b — Attach form ───────────────────────────────────────
+
+  if (step === "attach" && selectedVariantForAttach) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setStep("search")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-        </Link>
+          <h1 className="text-2xl font-bold">{t("attach_variant")}</h1>
+        </div>
+
+        <div className="rounded-lg border p-4 bg-muted/40 space-y-1">
+          <p className="text-sm font-medium">{selectedVariantForAttach.title}</p>
+          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            {selectedVariantForAttach.oem_code && (
+              <span>OEM: {selectedVariantForAttach.oem_code}</span>
+            )}
+            {selectedVariantForAttach.brand_model && (
+              <span>{selectedVariantForAttach.brand_model.title}</span>
+            )}
+            {selectedVariantForAttach.year && <span>{selectedVariantForAttach.year}</span>}
+          </div>
+        </div>
+
+        <form onSubmit={attachForm.handleSubmit(onSubmitAttach)} className="space-y-6">
+          <div className="rounded-lg border p-6 space-y-4">
+            <h2 className="text-lg font-semibold">{t("listing_information")}</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="attach-price">{t("price")} *</Label>
+                <Controller
+                  name="price"
+                  control={attachForm.control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      id="attach-price"
+                      type="number"
+                      step="0.01"
+                      className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  )}
+                />
+                {attachForm.formState.errors.price && (
+                  <p className="text-sm text-destructive">{attachForm.formState.errors.price.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="attach-stock">{t("stock")}</Label>
+                <Controller
+                  name="stock"
+                  control={attachForm.control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      id="attach-stock"
+                      type="number"
+                      className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="attach-city">{t("city")}</Label>
+                <Controller
+                  name="city_id"
+                  control={attachForm.control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value?.toString() || ""}
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      placeholder={t("select_city")}
+                      options={cities.map((city: any) => ({
+                        value: city.id.toString(),
+                        label: city.title,
+                      }))}
+                      disabled={loading}
+                    />
+                  )}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border p-6 space-y-4">
+            <h2 className="text-lg font-semibold">{t("discount_settings")}</h2>
+
+            <div className="flex items-center space-x-2">
+              <Controller
+                name="has_discount"
+                control={attachForm.control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="attach-has_discount"
+                    checked={!!field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+              <Label htmlFor="attach-has_discount">{t("has_discount")}</Label>
+            </div>
+
+            {hasDiscountAttach && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t("discount")} *</Label>
+                  <Controller
+                    name="discount"
+                    control={attachForm.control}
+                    render={({ field }) => (
+                      <Input {...field} type="number" step="0.01" className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                    )}
+                  />
+                  {attachForm.formState.errors.discount && (
+                    <p className="text-sm text-destructive">{attachForm.formState.errors.discount.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t("discount_type")} *</Label>
+                  <Controller
+                    name="discount_type"
+                    control={attachForm.control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value || ""}
+                        onValueChange={field.onChange}
+                        placeholder={t("select")}
+                        options={discountTypes.map((type: any) => ({
+                          value: type.id.toString(),
+                          label: type.title,
+                        }))}
+                        disabled={loading}
+                      />
+                    )}
+                  />
+                  {attachForm.formState.errors.discount_type && (
+                    <p className="text-sm text-destructive">{attachForm.formState.errors.discount_type.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t("discount_start_date")} *</Label>
+                  <Controller
+                    name="discount_start_at"
+                    control={attachForm.control}
+                    render={({ field }) => (
+                      <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t("discount_start_date")} />
+                    )}
+                  />
+                  {attachForm.formState.errors.discount_start_at && (
+                    <p className="text-sm text-destructive">{attachForm.formState.errors.discount_start_at.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t("discount_end_date")} *</Label>
+                  <Controller
+                    name="discount_end_at"
+                    control={attachForm.control}
+                    render={({ field }) => (
+                      <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t("discount_end_date")} />
+                    )}
+                  />
+                  {attachForm.formState.errors.discount_end_at && (
+                    <p className="text-sm text-destructive">{attachForm.formState.errors.discount_end_at.message}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">{t("images")} ({t("optional")})</h2>
+              <Button type="button" variant="outline" size="sm" onClick={addAttachImage}>
+                {t("add_image")}
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {attachImages.map((image, index) => (
+                <div key={index} className="relative rounded-lg border p-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium">{t("image")} {index + 1}</span>
+                    {attachImages.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => removeAttachImage(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  <FileInput
+                    file={image}
+                    setFile={(newImage: any) => handleAttachImageChange(index, newImage)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button type="submit" disabled={pending || loading} size="lg">
+            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t("attach_variant")}
+          </Button>
+        </form>
+      </div>
+    );
+  }
+
+  // ─── Render: Step 2a — Add new variant form ───────────────────────────────
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={() => setStep("search")}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <h1 className="text-2xl font-bold">{t("add_product_variant")}</h1>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={addNewForm.handleSubmit(onSubmitAddNew)} className="space-y-6">
         {/* Images Section */}
         <div className="rounded-lg border p-6 space-y-4">
           <h2 className="text-lg font-semibold">{t("images")}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{t("main_image")} *</Label>
+              <Label>{t("main_image")} ({t("optional")})</Label>
               <FileInput file={mainImage} setFile={handleMainImageChange} />
-              {errors.main_image && (
-                <p className="text-sm text-destructive">{errors.main_image.message}</p>
-              )}
             </div>
 
             <div className="space-y-2">
               <Label>{t("hover_image")} ({t("optional")})</Label>
               <FileInput file={hoverImage} setFile={handleHoverImageChange} />
-              {errors.hover_image && (
-                <p className="text-sm text-destructive">{errors.hover_image.message}</p>
-              )}
             </div>
           </div>
 
-          {/* Additional Images */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>{t("additional_images")} * ({t("at_least_one_required")})</Label>
+              <Label>{t("additional_images")} ({t("optional")})</Label>
               <Button type="button" variant="outline" size="sm" onClick={addImage}>
                 {t("add_image")}
               </Button>
             </div>
-            {errors.images && (
-              <p className="text-sm text-destructive">{(errors.images as any).message}</p>
-            )}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {images.map((image, index) => (
                 <div key={index} className="relative rounded-lg border p-2">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium">
-                      {t("image")} {index + 1}
-                    </span>
+                    <span className="text-xs font-medium">{t("image")} {index + 1}</span>
                     {images.length > 1 && (
                       <Button
                         type="button"
@@ -440,11 +873,6 @@ function AddProductVariantPage() {
                     file={image}
                     setFile={(newImage: any) => handleImageChange(index, newImage)}
                   />
-                  {errors.images?.[index] && (
-                    <p className="text-sm text-destructive mt-1">
-                      {(errors.images[index] as any)?.message}
-                    </p>
-                  )}
                 </div>
               ))}
             </div>
@@ -456,49 +884,12 @@ function AddProductVariantPage() {
           <h2 className="text-lg font-semibold">{t("basic_information")}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Stock */}
-            <div className="space-y-2">
-              <Label htmlFor="stock">{t("stock")}</Label>
-              <Controller
-                name="stock"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    value={field.value ?? ""}
-                    id="stock"
-                    type="number"
-                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                )}
-              />
-            </div>
-
-            {/* Price */}
-            <div className="space-y-2">
-              <Label htmlFor="price">{t("price")}</Label>
-              <Controller
-                name="price"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    value={field.value ?? ""}
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                )}
-              />
-            </div>
-
             {/* Brand */}
             <div className="space-y-2">
               <Label htmlFor="brand_id">{t("brand")}</Label>
               <Controller
                 name="brand_id"
-                control={control}
+                control={addNewForm.control}
                 render={({ field }) => (
                   <Select
                     value={field.value?.toString() || ""}
@@ -516,10 +907,10 @@ function AddProductVariantPage() {
 
             {/* Brand Model */}
             <div className="space-y-2">
-              <Label htmlFor="brand_model_id">{t("brand_model")}</Label>
+              <Label htmlFor="brand_model_id">{t("brand_model")} *</Label>
               <Controller
                 name="brand_model_id"
-                control={control}
+                control={addNewForm.control}
                 render={({ field }) => (
                   <Select
                     value={field.value?.toString() || ""}
@@ -533,14 +924,17 @@ function AddProductVariantPage() {
                   />
                 )}
               />
+              {addNewForm.formState.errors.brand_model_id && (
+                <p className="text-sm text-destructive">{addNewForm.formState.errors.brand_model_id.message}</p>
+              )}
             </div>
 
             {/* Year */}
             <div className="space-y-2">
-              <Label htmlFor="year">{t("year")}</Label>
+              <Label htmlFor="year">{t("year")} *</Label>
               <Controller
                 name="year"
-                control={control}
+                control={addNewForm.control}
                 render={({ field }) => (
                   <Input
                     {...field}
@@ -554,17 +948,29 @@ function AddProductVariantPage() {
                   />
                 )}
               />
-              {errors.year && (
-                <p className="text-sm text-destructive">{errors.year.message}</p>
+              {addNewForm.formState.errors.year && (
+                <p className="text-sm text-destructive">{addNewForm.formState.errors.year.message}</p>
               )}
+            </div>
+
+            {/* OEM Code */}
+            <div className="space-y-2">
+              <Label htmlFor="oem_code">{t("oem_code")}</Label>
+              <Controller
+                name="oem_code"
+                control={addNewForm.control}
+                render={({ field }) => (
+                  <Input {...field} value={field.value ?? ""} id="oem_code" placeholder={t("oem_code")} />
+                )}
+              />
             </div>
 
             {/* City */}
             <div className="space-y-2">
-              <Label htmlFor="city_id">{t("city")}</Label>
+              <Label htmlFor="city_id">{t("city")} *</Label>
               <Controller
                 name="city_id"
-                control={control}
+                control={addNewForm.control}
                 render={({ field }) => (
                   <Select
                     value={field.value?.toString() || ""}
@@ -578,9 +984,46 @@ function AddProductVariantPage() {
                   />
                 )}
               />
-              {errors.city_id && (
-                <p className="text-sm text-destructive">{errors.city_id.message}</p>
+              {addNewForm.formState.errors.city_id && (
+                <p className="text-sm text-destructive">{addNewForm.formState.errors.city_id.message}</p>
               )}
+            </div>
+
+            {/* Stock */}
+            <div className="space-y-2">
+              <Label htmlFor="stock">{t("stock")}</Label>
+              <Controller
+                name="stock"
+                control={addNewForm.control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value ?? ""}
+                    id="stock"
+                    type="number"
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                )}
+              />
+            </div>
+
+            {/* Price */}
+            <div className="space-y-2">
+              <Label htmlFor="price">{t("price")}</Label>
+              <Controller
+                name="price"
+                control={addNewForm.control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value ?? ""}
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                )}
+              />
             </div>
           </div>
         </div>
@@ -592,7 +1035,7 @@ function AddProductVariantPage() {
           <div className="flex items-center space-x-2">
             <Controller
               name="has_discount"
-              control={control}
+              control={addNewForm.control}
               render={({ field }) => (
                 <Checkbox
                   id="has_discount"
@@ -604,19 +1047,19 @@ function AddProductVariantPage() {
             <Label htmlFor="has_discount">{t("has_discount")}</Label>
           </div>
 
-          {hasDiscount && (
+          {hasDiscountAdd && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="discount">{t("discount")} *</Label>
                 <Controller
                   name="discount"
-                  control={control}
+                  control={addNewForm.control}
                   render={({ field }) => (
                     <Input {...field} id="discount" type="number" step="0.01" className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                   )}
                 />
-                {errors.discount && (
-                  <p className="text-sm text-destructive">{errors.discount.message}</p>
+                {addNewForm.formState.errors.discount && (
+                  <p className="text-sm text-destructive">{addNewForm.formState.errors.discount.message}</p>
                 )}
               </div>
 
@@ -624,7 +1067,7 @@ function AddProductVariantPage() {
                 <Label htmlFor="discount_type">{t("discount_type")} *</Label>
                 <Controller
                   name="discount_type"
-                  control={control}
+                  control={addNewForm.control}
                   render={({ field }) => (
                     <Select
                       value={field.value || ""}
@@ -638,8 +1081,8 @@ function AddProductVariantPage() {
                     />
                   )}
                 />
-                {errors.discount_type && (
-                  <p className="text-sm text-destructive">{errors.discount_type.message}</p>
+                {addNewForm.formState.errors.discount_type && (
+                  <p className="text-sm text-destructive">{addNewForm.formState.errors.discount_type.message}</p>
                 )}
               </div>
 
@@ -647,19 +1090,13 @@ function AddProductVariantPage() {
                 <Label>{t("discount_start_date")} *</Label>
                 <Controller
                   name="discount_start_at"
-                  control={control}
+                  control={addNewForm.control}
                   render={({ field }) => (
-                    <DatePickerInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder={t("discount_start_date")}
-                    />
+                    <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t("discount_start_date")} />
                   )}
                 />
-                {errors.discount_start_at && (
-                  <p className="text-sm text-destructive">
-                    {errors.discount_start_at.message}
-                  </p>
+                {addNewForm.formState.errors.discount_start_at && (
+                  <p className="text-sm text-destructive">{addNewForm.formState.errors.discount_start_at.message}</p>
                 )}
               </div>
 
@@ -667,19 +1104,13 @@ function AddProductVariantPage() {
                 <Label>{t("discount_end_date")} *</Label>
                 <Controller
                   name="discount_end_at"
-                  control={control}
+                  control={addNewForm.control}
                   render={({ field }) => (
-                    <DatePickerInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder={t("discount_end_date")}
-                    />
+                    <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t("discount_end_date")} />
                   )}
                 />
-                {errors.discount_end_at && (
-                  <p className="text-sm text-destructive">
-                    {errors.discount_end_at.message}
-                  </p>
+                {addNewForm.formState.errors.discount_end_at && (
+                  <p className="text-sm text-destructive">{addNewForm.formState.errors.discount_end_at.message}</p>
                 )}
               </div>
             </div>
@@ -736,8 +1167,8 @@ function AddProductVariantPage() {
                         <div className="space-y-2">
                           {productOption?.has_items ? (
                             <Controller
-                              name={`options.${optionIndex}.value`}
-                              control={control}
+                              name={`options.${optionIndex}.value` as any}
+                              control={addNewForm.control}
                               render={({ field }) => (
                                 <Select
                                   value={field.value?.toString() || ""}
@@ -752,8 +1183,8 @@ function AddProductVariantPage() {
                             />
                           ) : (
                             <Controller
-                              name={`options.${optionIndex}.value`}
-                              control={control}
+                              name={`options.${optionIndex}.value` as any}
+                              control={addNewForm.control}
                               render={({ field }) => (
                                 <Input
                                   {...field}
@@ -775,8 +1206,8 @@ function AddProductVariantPage() {
                             <div key={lang.id} className="space-y-2">
                               {productOption.has_items ? (
                                 <Controller
-                                  name={`options.${optionIndex}.translations.${langIndex}.translatable_value`}
-                                  control={control}
+                                  name={`options.${optionIndex}.translations.${langIndex}.translatable_value` as any}
+                                  control={addNewForm.control}
                                   render={({ field }) => (
                                     <Select
                                       value={field.value?.toString() || ""}
@@ -791,8 +1222,8 @@ function AddProductVariantPage() {
                                 />
                               ) : (
                                 <Controller
-                                  name={`options.${optionIndex}.translations.${langIndex}.translatable_value`}
-                                  control={control}
+                                  name={`options.${optionIndex}.translations.${langIndex}.translatable_value` as any}
+                                  control={addNewForm.control}
                                   render={({ field }) => (
                                     <Input
                                       {...field}
@@ -814,7 +1245,6 @@ function AddProductVariantPage() {
           )}
         </div>
 
-        {/* Submit */}
         <Button type="submit" disabled={pending || loading} size="lg">
           {(pending || loading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {t("add_product_variant")}

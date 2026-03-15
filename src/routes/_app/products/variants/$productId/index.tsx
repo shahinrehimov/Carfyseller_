@@ -66,7 +66,7 @@ function ProductVariantsPage() {
       if (params?.search ?? search) {
         queryParams.append("search", params?.search ?? search);
       }
-      const res = await controlPrivateApi.get(`/product-variants/load?${queryParams}`);
+      const res = await controlPrivateApi.get(`/sellers/product-variants/load?${queryParams}`);
       setList(res.data.data || []);
       setMeta(res.data.meta || { total: 0, current_page: 1, per_page: 10, last_page: 1 });
     } catch {
@@ -89,7 +89,7 @@ function ProductVariantsPage() {
 
   const toggleStatus = async (id: number, currentStatus: boolean) => {
     try {
-      await controlPrivateApi.post(`/product-variants/change-active-status/${id}`, {
+      await controlPrivateApi.post(`/sellers/product-variants/change-active-status/${id}`, {
         is_active: !currentStatus,
       });
       setList((prev) =>
@@ -112,7 +112,7 @@ function ProductVariantsPage() {
     if (!selectedVariant) return;
     setDeleteLoading(true);
     try {
-      await controlPrivateApi.delete(`/product-variants/delete/${selectedVariant.id}`);
+      await controlPrivateApi.delete(`/sellers/product-variants/delete/${selectedVariant.id}`);
       toast.success(t("deleted_successfully"));
       setIsDeleteModalOpen(false);
       setSelectedVariant(null);
@@ -131,7 +131,7 @@ function ProductVariantsPage() {
     setHistoryLoading(true);
     try {
       const res = await controlPrivateApi.get(
-        `/product-variants/${variant.id}/approval-status/history`
+        `/sellers/product-variants/${variant.id}/approval-status/history`
       );
       setHistoryList(res.data.data || []);
     } catch {
@@ -151,7 +151,7 @@ function ProductVariantsPage() {
     setResendLoading(true);
     try {
       await controlPrivateApi.post(
-        `/product-variants/${resendVariant.id}/approval-status/resend`
+        `/sellers/product-variants/${resendVariant.id}/approval-status/resend`
       );
       toast.success(t("resend_success"));
       setIsResendConfirmOpen(false);

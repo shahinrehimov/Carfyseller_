@@ -33,7 +33,7 @@ function ShowProductVariantPage() {
     const fetchVariant = async () => {
       try {
         setLoading(true);
-        const res = await controlPrivateApi.get(`/product-variants/show/${variantId}`);
+        const res = await controlPrivateApi.get(`/sellers/product-variants/show/${variantId}`);
         setVariant(res.data.data);
       } catch {
         toast.error(t("error_loading_data"));

@@ -155,7 +155,7 @@ function EditProductVariantPage() {
     const fetchBrandModels = async () => {
       setBrandModelsLoading(true);
       try {
-        const res = await controlPrivateApi.get(`/brands/${selectedBrandId}/models/list`);
+        const res = await controlPrivateApi.get(`/sellers/brands/${selectedBrandId}/models/list`);
         setBrandModels(res.data.data || []);
         if (!isInitialSet) {
           setValue("brand_model_id", undefined);
@@ -175,11 +175,11 @@ function EditProductVariantPage() {
       try {
         const [discountTypesRes, productOptionsRes, variantRes, countriesRes, brandsRes] =
           await Promise.all([
-            controlPrivateApi.get("/discount-types/list").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get("/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get(`/product-variants/show/${variantId}`),
-            controlPrivateApi.get("/countries/list?with_cities=yes").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get("/brands/list").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/sellers/discount-types/list").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/sellers/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get(`/sellers/product-variants/show/${variantId}`),
+            controlPrivateApi.get("/sellers/countries/list?with_cities=yes").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/sellers/brands/list").catch(() => ({ data: { data: [] } })),
           ]);
 
         setDiscountTypes(discountTypesRes.data.data || []);
@@ -198,7 +198,7 @@ function EditProductVariantPage() {
 
         if (existingBrandId) {
           try {
-            const modelsRes = await controlPrivateApi.get(`/brands/${existingBrandId}/models/list`);
+            const modelsRes = await controlPrivateApi.get(`/sellers/brands/${existingBrandId}/models/list`);
             setBrandModels(modelsRes.data.data || []);
           } catch {
             // ignore
@@ -349,11 +349,8 @@ function EditProductVariantPage() {
       const formData = new FormData();
 
       const basicFields: any = {
-        stock: data.stock,
-        price: data.price,
         has_discount: data.has_discount,
         year: data.year || null,
-        city_id: data.city_id || null,
         brand_model_id: data.brand_model_id || null,
       };
 
@@ -424,7 +421,7 @@ function EditProductVariantPage() {
       }
 
       const res = await controlPrivateApi.post(
-        `/product-variants/update/${variantId}`,
+        `/sellers/product-variants/update/${variantId}`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
