@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { ArrowLeft, Clock, Loader2, X } from "lucide-react";
 import { useTranslationStore } from "@/store/translations";
 import { FileInput } from "@/components/ui/file-input";
@@ -69,7 +70,7 @@ function EditProductVariantPage() {
     }),
     oem_code: Yup.string().max(100).notRequired(),
     brand_id: Yup.number().notRequired(),
-    brand_model_id: Yup.number().notRequired(),
+    brand_model_ids: Yup.array().of(Yup.number()).notRequired(),
     year: Yup.number()
       .transform((value, originalValue) => (originalValue === "" ? undefined : value))
       .notRequired(),
@@ -133,7 +134,7 @@ function EditProductVariantPage() {
       discount_end_at: undefined,
       oem_code: "",
       brand_id: undefined,
-      brand_model_id: undefined,
+      brand_model_ids: [] as number[],
       year: "" as any,
       city_id: undefined,
       options: [],
@@ -150,7 +151,7 @@ function EditProductVariantPage() {
     if (!selectedBrandId) {
       if (prevBrandIdRef.current !== undefined) {
         setBrandModels([]);
-        setValue("brand_model_id", undefined);
+        setValue("brand_model_ids", []);
       }
       prevBrandIdRef.current = undefined;
       return;
@@ -164,7 +165,7 @@ function EditProductVariantPage() {
         const res = await controlPrivateApi.get(`/brands/${selectedBrandId}/models/list`);
         setBrandModels(res.data.data || []);
         if (!isInitialSet) {
-          setValue("brand_model_id", undefined);
+          setValue("brand_model_ids", []);
         }
       } catch {
         setBrandModels([]);
@@ -218,8 +219,9 @@ function EditProductVariantPage() {
         setPendingRevision(revision);
 
         const pv = cpvData.variant;
-        // For brand pre-selection always use the current variant's brand
-        const existingBrandId = pv?.brand_model?.brand_id || pv?.product?.brand?.id;
+        // For brand pre-selection use the first of the current variant's brand models
+        const existingBrandModels: Array<{id: number; title: string; brand_id?: number}> = pv?.brand_models || [];
+        const existingBrandId = existingBrandModels[0]?.brand_id || pv?.product?.brand?.id;
 
         if (existingBrandId) {
           try {
@@ -231,7 +233,7 @@ function EditProductVariantPage() {
         }
 
         // Prefer revision's proposed values for canonical fields, fall back to current variant
-        const rd = revision?.data; // { oem_code, brand_model_id, year, options }
+        const rd = revision?.data; // { oem_code, brand_model_ids, year, options }
 
         const formValues: any = {
           main_image: {},
@@ -253,7 +255,7 @@ function EditProductVariantPage() {
           // PV (canonical) fields — use revision's proposed values if pending revision exists
           oem_code: rd?.oem_code ?? pv?.oem_code ?? "",
           brand_id: existingBrandId || undefined,
-          brand_model_id: rd?.brand_model_id ?? pv?.brand_model?.id ?? undefined,
+          brand_model_ids: rd?.brand_model_ids ?? existingBrandModels.map((m: any) => m.id),
           year: rd?.year ?? pv?.year ?? "",
           options:
             pv?.options?.map((opt: any) => ({
@@ -385,7 +387,6 @@ function EditProductVariantPage() {
         ? {
             oem_code: data.oem_code || null,
             year: data.year || null,
-            brand_model_id: data.brand_model_id || null,
           }
         : {
             has_discount: data.has_discount,
@@ -414,6 +415,12 @@ function EditProductVariantPage() {
           formData.append(key, value);
         }
       });
+
+      if (isCreator && data.brand_model_ids?.length) {
+        data.brand_model_ids.forEach((id: number, index: number) => {
+          formData.append(`brand_model_ids[${index}]`, String(id));
+        });
+      }
 
       if (data.main_image?.file && data.main_image.file !== "show") {
         formData.append("main_image", data.main_image.file);
@@ -664,14 +671,14 @@ function EditProductVariantPage() {
 
             {/* Brand Model — only for creator */}
             {isCreator && <div className="space-y-2">
-              <Label htmlFor="brand_model_id">{t("brand_model")}</Label>
+              <Label>{t("brand_model")}</Label>
               <Controller
-                name="brand_model_id"
+                name="brand_model_ids"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    value={field.value?.toString() || ""}
-                    onValueChange={(value) => field.onChange(parseInt(value))}
+                  <MultiSelect
+                    value={(field.value as number[] || []).map(String)}
+                    onChange={(vals) => field.onChange(vals.map(Number))}
                     placeholder={t("select_brand_model")}
                     options={brandModels.map((model: any) => ({
                       value: model.id.toString(),

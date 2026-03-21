@@ -628,7 +628,7 @@ function CatalogModal({
                 </p>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                   {item.oem_code && <span>OEM: {item.oem_code}</span>}
-                  {item.brand_model && <span>{item.brand_model.title}</span>}
+                  {item.brand_models?.length > 0 && <span>{item.brand_models.map((m: any) => m.title).join(", ")}</span>}
                   {item.year && <span>{item.year}</span>}
                 </div>
                 {item.already_attached && (

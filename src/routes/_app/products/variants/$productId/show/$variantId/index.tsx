@@ -281,10 +281,10 @@ function ShowProductVariantPage() {
                   <TableCell>{variant.year}</TableCell>
                 </TableRow>
               )}
-              {variant?.brand_model && (
+              {variant?.brand_models?.length > 0 && (
                 <TableRow>
                   <TableCell className="font-medium">{t("brand_model")}</TableCell>
-                  <TableCell>{variant.brand_model.title}</TableCell>
+                  <TableCell>{variant.brand_models.map((m: any) => m.title).join(", ")}</TableCell>
                 </TableRow>
               )}
               {variant?.product && (

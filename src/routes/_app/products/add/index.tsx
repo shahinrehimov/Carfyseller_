@@ -274,7 +274,7 @@ function AddProductPage() {
       then: (schema) => schema.required(t("required_field")),
       otherwise: (schema) => schema.notRequired(),
     }),
-    brand_model_id: Yup.number().notRequired(),
+    brand_model_ids: Yup.array().of(Yup.number()).notRequired(),
     oem_code: Yup.string().max(100).notRequired(),
     year: Yup.number()
       .transform((value, originalValue) =>
@@ -344,7 +344,7 @@ function AddProductPage() {
       sets: [],
       price: 0,
       brand_id: undefined,
-      brand_model_id: undefined,
+      brand_model_ids: [] as number[],
       oem_code: "",
       categories: [],
       main_category_id: undefined,
@@ -379,7 +379,7 @@ function AddProductPage() {
   useEffect(() => {
     if (!selectedBrandId) {
       setBrandModels([]);
-      setValue("brand_model_id", undefined);
+      setValue("brand_model_ids", []);
       return;
     }
     const fetchBrandModels = async () => {
@@ -395,7 +395,7 @@ function AddProductPage() {
         setBrandModelsLoading(false);
       }
     };
-    setValue("brand_model_id", undefined);
+    setValue("brand_model_ids", []);
     fetchBrandModels();
   }, [selectedBrandId, setValue]);
 
@@ -639,7 +639,7 @@ function AddProductPage() {
             })()
           : null,
         brand_id: data.brand_id,
-        brand_model_id: data.brand_model_id || null,
+        brand_model_ids: data.brand_model_ids || [],
         categories: data.categories,
         main_category_id: data.main_category_id,
         year: data.year || null,
@@ -835,7 +835,7 @@ function AddProductPage() {
                       </div>
                       <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                         {item.oem_code && <span>OEM: {item.oem_code}</span>}
-                        {item.brand_model && <span>{item.brand_model.title}</span>}
+                        {item.brand_models?.length > 0 && <span>{item.brand_models.map((m: any) => m.title).join(", ")}</span>}
                         {item.year && <span>{item.year}</span>}
                       </div>
                     </div>
@@ -887,8 +887,8 @@ function AddProductPage() {
             {selectedVariantForAttach.oem_code && (
               <span>OEM: {selectedVariantForAttach.oem_code}</span>
             )}
-            {selectedVariantForAttach.brand_model && (
-              <span>{selectedVariantForAttach.brand_model.title}</span>
+            {selectedVariantForAttach.brand_models?.length > 0 && (
+              <span>{selectedVariantForAttach.brand_models.map((m: any) => m.title).join(", ")}</span>
             )}
             {selectedVariantForAttach.year && <span>{selectedVariantForAttach.year}</span>}
           </div>
@@ -1303,14 +1303,14 @@ function AddProductPage() {
 
             {/* Brand Model */}
             <div className="space-y-2">
-              <Label htmlFor="brand_model_id">{t("brand_model")}</Label>
+              <Label>{t("brand_model")}</Label>
               <Controller
-                name="brand_model_id"
+                name="brand_model_ids"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    value={field.value?.toString() || ""}
-                    onValueChange={(value) => field.onChange(parseInt(value))}
+                  <MultiSelect
+                    value={(field.value as number[] || []).map(String)}
+                    onChange={(vals) => field.onChange(vals.map(Number))}
                     placeholder={t("select_brand_model")}
                     options={brandModels.map((model: any) => ({
                       value: model.id.toString(),
@@ -1320,9 +1320,9 @@ function AddProductPage() {
                   />
                 )}
               />
-              {errors.brand_model_id && (
+              {errors.brand_model_ids && (
                 <p className="text-sm text-destructive">
-                  {errors.brand_model_id.message}
+                  {errors.brand_model_ids.message as string}
                 </p>
               )}
             </div>

@@ -80,7 +80,7 @@ export interface ProductVariant {
   title: string;
   oem_code: string | null;
   year: number | null;
-  brand_model: { id: number; title: string } | null;
+  brand_models: Array<{ id: number; title: string; brand_id?: number }>;
   options: Array<{
     id: number;
     option: {
@@ -119,7 +119,7 @@ export interface CatalogSearchItem {
   title: string;
   oem_code: string | null;
   year: number | null;
-  brand_model: { id: number; title: string } | null;
+  brand_models: Array<{ id: number; title: string; brand_id?: number }>;
   options: Array<any>;
   is_creator: boolean;
   already_attached: boolean;
@@ -183,7 +183,7 @@ export interface CompanyProductVariant {
     hover_image: string | null;
     is_set: boolean;
     is_creator: boolean;
-    brand_model: { id: number; title: string } | null;
+    brand_models: Array<{ id: number; title: string; brand_id?: number }>;
     year: number | null;
     product: {
       id: number;

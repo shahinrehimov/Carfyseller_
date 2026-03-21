@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { ArrowLeft, Loader2, Search, X, Link2, Plus } from "lucide-react";
 import { useTranslationStore } from "@/store/translations";
 import { FileInput } from "@/components/ui/file-input";
@@ -62,7 +63,7 @@ function AddProductVariantPage() {
   // ─── Validation schemas ───────────────────────────────────────────────────
 
   const addNewSchema = Yup.object().shape({
-    brand_model_id: Yup.number().required(t("required_field")),
+    brand_model_ids: Yup.array().of(Yup.number()).min(1, t("required_field")).required(t("required_field")),
     year: Yup.number()
       .transform((value, originalValue) => (originalValue === "" ? undefined : value))
       .required(t("required_field")),
@@ -143,7 +144,7 @@ function AddProductVariantPage() {
     resolver: yupResolver(addNewSchema),
     defaultValues: {
       brand_id: undefined as number | undefined,
-      brand_model_id: undefined as number | undefined,
+      brand_model_ids: [] as number[],
       year: "" as any,
       oem_code: "",
       city_id: undefined as number | undefined,
@@ -237,7 +238,7 @@ function AddProductVariantPage() {
   useEffect(() => {
     if (!selectedBrandId) {
       setBrandModels([]);
-      addNewForm.setValue("brand_model_id", undefined as any);
+      addNewForm.setValue("brand_model_ids", []);
       return;
     }
     const fetchBrandModels = async () => {
@@ -251,7 +252,7 @@ function AddProductVariantPage() {
         setBrandModelsLoading(false);
       }
     };
-    addNewForm.setValue("brand_model_id", undefined as any);
+    addNewForm.setValue("brand_model_ids", []);
     fetchBrandModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBrandId]);
@@ -376,7 +377,6 @@ function AddProductVariantPage() {
       const formData = new FormData();
 
       const basicFields: any = {
-        brand_model_id: data.brand_model_id,
         year: data.year,
         oem_code: data.oem_code || null,
         city_id: data.city_id,
@@ -405,6 +405,12 @@ function AddProductVariantPage() {
           formData.append(key, value);
         }
       });
+
+      if (data.brand_model_ids?.length) {
+        data.brand_model_ids.forEach((id: number, index: number) => {
+          formData.append(`brand_model_ids[${index}]`, String(id));
+        });
+      }
 
       if (mainImage?.file) formData.append("main_image", mainImage.file);
       if (hoverImage?.file) formData.append("hover_image", hoverImage.file);
@@ -574,7 +580,7 @@ function AddProductVariantPage() {
                       </div>
                       <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                         {item.oem_code && <span>OEM: {item.oem_code}</span>}
-                        {item.brand_model && <span>{item.brand_model.title}</span>}
+                        {item.brand_models?.length > 0 && <span>{item.brand_models.map(m => m.title).join(", ")}</span>}
                         {item.year && <span>{item.year}</span>}
                       </div>
                     </div>
@@ -624,8 +630,8 @@ function AddProductVariantPage() {
             {selectedVariantForAttach.oem_code && (
               <span>OEM: {selectedVariantForAttach.oem_code}</span>
             )}
-            {selectedVariantForAttach.brand_model && (
-              <span>{selectedVariantForAttach.brand_model.title}</span>
+            {selectedVariantForAttach.brand_models?.length > 0 && (
+              <span>{selectedVariantForAttach.brand_models.map(m => m.title).join(", ")}</span>
             )}
             {selectedVariantForAttach.year && <span>{selectedVariantForAttach.year}</span>}
           </div>
@@ -915,14 +921,14 @@ function AddProductVariantPage() {
 
             {/* Brand Model */}
             <div className="space-y-2">
-              <Label htmlFor="brand_model_id">{t("brand_model")} *</Label>
+              <Label>{t("brand_model")} *</Label>
               <Controller
-                name="brand_model_id"
+                name="brand_model_ids"
                 control={addNewForm.control}
                 render={({ field }) => (
-                  <Select
-                    value={field.value?.toString() || ""}
-                    onValueChange={(value) => field.onChange(parseInt(value))}
+                  <MultiSelect
+                    value={(field.value as number[] || []).map(String)}
+                    onChange={(vals) => field.onChange(vals.map(Number))}
                     placeholder={t("select_brand_model")}
                     options={brandModels.map((model: any) => ({
                       value: model.id.toString(),
@@ -932,8 +938,8 @@ function AddProductVariantPage() {
                   />
                 )}
               />
-              {addNewForm.formState.errors.brand_model_id && (
-                <p className="text-sm text-destructive">{addNewForm.formState.errors.brand_model_id.message}</p>
+              {addNewForm.formState.errors.brand_model_ids && (
+                <p className="text-sm text-destructive">{addNewForm.formState.errors.brand_model_ids.message as string}</p>
               )}
             </div>
 
