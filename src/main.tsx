@@ -14,7 +14,6 @@ import reportWebVitals from "./reportWebVitals.ts";
 import { ThemeProvider } from "./components/themes/provider.tsx";
 
 // Import the generated route tree
-
 import { routeTree } from "./routeTree.gen";
 import { checkUserQueryOptions } from "./lib/queries/checkUser.ts";
 import { polyfillToastConsole } from "./lib/utils/devConsoleToast.ts";
