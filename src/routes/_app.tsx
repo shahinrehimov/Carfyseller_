@@ -7,7 +7,10 @@ export const Route = createFileRoute("/_app")({
   component: RouteComponent,
   async loader({ context: { queryClient } }) {
     try {
-      await queryClient.ensureQueryData(checkUserQueryOptions);
+      const user = await queryClient.ensureQueryData(checkUserQueryOptions);
+      if (user?.password_must_change) {
+        throw redirect({ to: "/change-password" });
+      }
     } catch (e) {
       if (isAxiosError(e)) {
         if (e.response?.status === 401) {
@@ -15,6 +18,8 @@ export const Route = createFileRoute("/_app")({
             to: "/auth/signin",
           });
         }
+      } else {
+        throw e;
       }
     }
   },

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
@@ -26,6 +27,11 @@ import { Route as AppProductsVariantsProductIdAddIndexRouteImport } from './rout
 import { Route as AppProductsVariantsProductIdShowVariantIdIndexRouteImport } from './routes/_app/products/variants/$productId/show/$variantId/index'
 import { Route as AppProductsVariantsProductIdEditVariantIdIndexRouteImport } from './routes/_app/products/variants/$productId/edit/$variantId/index'
 
+const ChangePasswordRoute = ChangePasswordRouteImport.update({
+  id: '/change-password',
+  path: '/change-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -115,6 +121,7 @@ const AppProductsVariantsProductIdEditVariantIdIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/change-password': typeof ChangePasswordRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
+  '/change-password': typeof ChangePasswordRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/change-password': typeof ChangePasswordRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/change-password'
     | '/auth/forgot-password'
     | '/auth/register'
     | '/auth/reset-password'
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/change-password'
     | '/auth/forgot-password'
     | '/auth/register'
     | '/auth/reset-password'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/auth'
+    | '/change-password'
     | '/auth/forgot-password'
     | '/auth/register'
     | '/auth/reset-password'
@@ -223,10 +235,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  ChangePasswordRoute: typeof ChangePasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/change-password': {
+      id: '/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof ChangePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -393,6 +413,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  ChangePasswordRoute: ChangePasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

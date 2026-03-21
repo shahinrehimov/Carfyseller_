@@ -41,16 +41,18 @@ axios.interceptors.request.use(
   (error: AxiosError): Promise<never> => Promise.reject(error),
 );
 
-// axios.interceptors.response.use(
-//   (response: AxiosResponse): AxiosResponse => response,
-//   async (error: AxiosError): Promise<never> => {
-//     if (error?.response?.status === 401) {
-//       clearData();
-//       window.location.href = window.location.origin + "/auth/signin";
-//       throw error;
-//     }
-//     return Promise.reject(error);
-//   }
-// );
+axios.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<{ type?: string }>) => {
+    if (
+      error?.response?.status === 403 &&
+      error.response.data?.type === "password_must_change" &&
+      !window.location.pathname.includes("/change-password")
+    ) {
+      window.location.href = window.location.origin + "/change-password";
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const controlPrivateApi = axios;

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -39,6 +39,7 @@ function RouteComponent() {
   const isDark = theme === "dark";
   const { t } = useTranslation();
   const redirect = useRedirectBack(searchParams.redirect);
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm({
@@ -55,7 +56,11 @@ function RouteComponent() {
     },
     onSuccess(data) {
       useAuthStore.getState().setAuth(data.data, data.data.token);
-      redirect();
+      if (data.data.password_must_change) {
+        navigate({ to: "/change-password" });
+      } else {
+        redirect();
+      }
     },
     async onError(error) {
       if (isAxiosError(error)) {
