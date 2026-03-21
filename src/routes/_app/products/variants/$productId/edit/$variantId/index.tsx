@@ -103,6 +103,8 @@ function EditProductVariantPage() {
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingRevision, setPendingRevision] = useState<any>(null);
+  const [showRevisionConfirm, setShowRevisionConfirm] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState<any>(null);
 
   const [mainImage, setMainImage] = useState<any>({});
   const [hoverImage, setHoverImage] = useState<any>({});
@@ -368,7 +370,7 @@ function EditProductVariantPage() {
     return productOptions.filter((option: any) => !selectedOptionIds.includes(option.id));
   };
 
-  const onSubmit = async (data: any) => {
+  const doSubmit = async (data: any) => {
     if (pending) return;
     setPending(true);
 
@@ -483,6 +485,16 @@ function EditProductVariantPage() {
     } finally {
       setPending(false);
     }
+  };
+
+  const onSubmit = (data: any) => {
+    // If creator and has an existing pending revision, ask for confirmation first
+    if (isCreator && pendingRevision?.status === "pending") {
+      setPendingSubmitData(data);
+      setShowRevisionConfirm(true);
+      return;
+    }
+    doSubmit(data);
   };
 
   if (loading) {
@@ -969,6 +981,46 @@ function EditProductVariantPage() {
           {t("update_product_variant")}
         </Button>
       </form>
+
+      {/* Confirmation dialog — re-submit with existing pending revision */}
+      {showRevisionConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-md rounded-lg border bg-white p-6 shadow-lg dark:bg-gray-900">
+            <div className="flex items-start gap-3">
+              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-yellow-500" />
+              <div>
+                <h3 className="font-semibold">
+                  {t("pending_revision_exists") || "Gözləyən dəyişiklik var"}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {t("pending_revision_confirm_replace") ||
+                    "Artıq admin təsdiqi gözləyən bir dəyişikliyiniz var. Yeni dəyişiklik göndərsəniz köhnəsi silinəcək. Davam etmək istəyirsinizmi?"}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRevisionConfirm(false);
+                  setPendingSubmitData(null);
+                }}
+              >
+                {t("cancel")}
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowRevisionConfirm(false);
+                  doSubmit(pendingSubmitData);
+                  setPendingSubmitData(null);
+                }}
+              >
+                {t("yes_send") || "Bəli, göndər"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
