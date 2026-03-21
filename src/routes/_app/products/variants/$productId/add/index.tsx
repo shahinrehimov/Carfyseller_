@@ -33,8 +33,8 @@ function AddProductVariantPage() {
   const { productId } = useParams({ from: "/_app/products/variants/$productId/add/" });
   const langs = useTranslationStore((state) => state.langs);
 
-  // Step management
-  const [step, setStep] = useState<Step>("search");
+  // Step management — start directly on "add-new"; token fetched silently on mount
+  const [step, setStep] = useState<Step>("add-new");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchToken, setSearchToken] = useState<string | null>(null);
@@ -225,6 +225,14 @@ function AddProductVariantPage() {
     fetchHelperData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [langs]);
+
+  // ─── Auto-fetch search token on mount ────────────────────────────────────
+  useEffect(() => {
+    if (!productId) return;
+    searchCatalog({ product_id: Number(productId) })
+      .then((result) => setSearchToken(result.search_token))
+      .catch(() => {});
+  }, [productId]);
 
   useEffect(() => {
     if (!selectedBrandId) {
