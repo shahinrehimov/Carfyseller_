@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { InternalAxiosRequestConfig, AxiosError } from "axios";
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth";
 
 // const clearData = (): void => {
@@ -43,14 +44,24 @@ axios.interceptors.request.use(
 
 axios.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ type?: string }>) => {
-    if (
-      error?.response?.status === 403 &&
-      error.response.data?.type === "password_must_change" &&
-      !window.location.pathname.includes("/change-password")
-    ) {
-      window.location.href = window.location.origin + "/change-password";
+  (error: AxiosError<{ type?: string; message?: string }>) => {
+    const type = error?.response?.data?.type;
+    const message = error?.response?.data?.message;
+
+    if (error?.response?.status === 403) {
+      if (
+        type === "password_must_change" &&
+        !window.location.pathname.includes("/change-password")
+      ) {
+        window.location.href = window.location.origin + "/change-password";
+      } else if (type === "company_not_verified") {
+        toast.error(message ?? "Your company is not verified yet.", {
+          id: "company_not_verified",
+          duration: 5000,
+        });
+      }
     }
+
     return Promise.reject(error);
   },
 );
