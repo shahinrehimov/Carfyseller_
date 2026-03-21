@@ -921,25 +921,6 @@ function AddProductVariantPage() {
             {/* Brand Model */}
             <div className="space-y-2">
               <Label>{t("brand_model")} *</Label>
-              {selectedModels.length > 0 && (
-                <div className="flex flex-col gap-1.5">
-                  {selectedModels.map((model) => (
-                    <div key={model.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm bg-muted/30">
-                      <span>
-                        <span className="text-muted-foreground text-xs">{model.brand_title} · </span>
-                        {model.title}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedModels((prev) => prev.filter((m) => m.id !== model.id))}
-                        className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
               <Select
                 value={modelSelectValue}
                 onValueChange={(value) => {
@@ -958,6 +939,36 @@ function AddProductVariantPage() {
                   .map((model: any) => ({ value: model.id.toString(), label: model.title }))}
                 disabled={loading || brandModelsLoading || !selectedBrandId}
               />
+              {selectedModels.length > 0 && (
+                <div className="rounded-md border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted/50 text-muted-foreground text-xs">
+                        <th className="px-3 py-2 text-left font-medium">{t("brand")}</th>
+                        <th className="px-3 py-2 text-left font-medium">{t("model")}</th>
+                        <th className="w-8" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedModels.map((model, i) => (
+                        <tr key={model.id} className={i > 0 ? "border-t" : ""}>
+                          <td className="px-3 py-2 text-muted-foreground">{model.brand_title}</td>
+                          <td className="px-3 py-2">{model.title}</td>
+                          <td className="px-2 py-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedModels((prev) => prev.filter((m) => m.id !== model.id))}
+                              className="text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             {/* Year */}
