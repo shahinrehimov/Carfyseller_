@@ -828,7 +828,7 @@ function AddProductPage() {
                   <div key={item.id} className="flex items-center justify-between p-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{item.product?.title || item.slug}</span>
+                        <span className="font-medium">{item.title || item.slug}</span>
                         {item.already_attached && (
                           <Badge variant="secondary">{t("already_attached")}</Badge>
                         )}
@@ -881,7 +881,7 @@ function AddProductPage() {
         {/* Selected variant info */}
         <div className="rounded-lg border p-4 bg-muted/40 space-y-1">
           <p className="text-sm font-medium">
-            {selectedVariantForAttach.product?.title || selectedVariantForAttach.slug}
+            {selectedVariantForAttach.title || selectedVariantForAttach.slug}
           </p>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
             {selectedVariantForAttach.oem_code && (
