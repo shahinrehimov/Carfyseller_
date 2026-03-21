@@ -1,7 +1,7 @@
 import axios from "axios";
 import type { InternalAxiosRequestConfig, AxiosError } from "axios";
-import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth";
+import { useCompanyNotVerifiedStore } from "@/store/companyNotVerified";
 
 // const clearData = (): void => {
 //   useAuthStore.getState().clearAuth();
@@ -55,10 +55,9 @@ axios.interceptors.response.use(
       ) {
         window.location.href = window.location.origin + "/change-password";
       } else if (type === "company_not_verified") {
-        toast.error(message ?? "Your company is not verified yet.", {
-          id: "company_not_verified",
-          duration: 5000,
-        });
+        useCompanyNotVerifiedStore
+          .getState()
+          .show(message ?? "Your company is not verified yet.");
       }
     }
 
