@@ -1,9 +1,11 @@
 import { ShieldAlert, X } from "lucide-react";
 import { Button } from "./button";
 import { useCompanyNotVerifiedStore } from "@/store/companyNotVerified";
+import { useTranslation } from "@/lib/utils/translationLoader";
 
 export function CompanyNotVerifiedModal() {
   const { isOpen, message, hide } = useCompanyNotVerifiedStore();
+  const { t } = useTranslation();
 
   if (!isOpen) return null;
 
@@ -27,15 +29,15 @@ export function CompanyNotVerifiedModal() {
           </div>
 
           <h2 className="mb-3 text-2xl font-bold text-gray-900 dark:text-white">
-            Company Not Verified
+            {t("company_not_verified_title", "Company Not Verified")}
           </h2>
 
           <p className="mb-8 text-base leading-relaxed text-gray-500 dark:text-gray-400">
-            {message || "Your company account has not been verified yet. Please wait for admin approval before accessing this feature."}
+            {message || t("company_not_verified_message", "Your company account has not been verified yet. Please wait for admin approval.")}
           </p>
 
           <Button onClick={hide} size="lg" className="min-w-[160px]">
-            OK, Got It
+            {t("ok_got_it", "OK, Got It")}
           </Button>
         </div>
       </div>
