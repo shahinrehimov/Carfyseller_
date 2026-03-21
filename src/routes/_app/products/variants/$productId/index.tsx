@@ -213,7 +213,7 @@ function AttachForm({
                 onChange={(e) => set("discount_type", e.target.value)}
               >
                 <option value="by_percentage">{t("percentage") || "%"}</option>
-                <option value="by_fixed">{t("fixed_amount") || "Fixed"}</option>
+                <option value="by_amount">{t("fixed_amount") || "Fixed"}</option>
               </select>
             </div>
             <div className="space-y-1">
@@ -399,7 +399,7 @@ function PricingModal({
                 onChange={(e) => set("discount_type", e.target.value)}
               >
                 <option value="by_percentage">{t("percentage") || "%"}</option>
-                <option value="by_fixed">{t("fixed_amount") || "Fixed"}</option>
+                <option value="by_amount">{t("fixed_amount") || "Fixed"}</option>
               </select>
             </div>
             <div className="space-y-1">
