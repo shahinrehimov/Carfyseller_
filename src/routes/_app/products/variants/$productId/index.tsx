@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
 import { searchCatalog, useAttachProductVariant } from "@/lib/queries/products";
 import type { CatalogSearchItem } from "@/lib/queries/products";
@@ -274,37 +274,33 @@ function CatalogModal({
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<CatalogSearchItem[]>([]);
   const [selectedForAttach, setSelectedForAttach] = useState<CatalogSearchItem | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchCatalog = useCallback(
-    async (searchValue: string) => {
+  useEffect(() => {
+    let cancelled = false;
+    const doFetch = async (searchValue: string) => {
       setLoading(true);
       try {
         const res = await searchCatalog({
           product_id: Number(productId),
           search: searchValue || undefined,
         });
-        setResults(res.data);
+        if (!cancelled) setResults(res.data);
       } catch {
-        toast.error(t("error_loading_data"));
+        if (!cancelled) toast.error(t("error_loading_data"));
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    },
-    [productId, t],
-  );
+    };
 
-  useEffect(() => {
-    fetchCatalog("");
-  }, [fetchCatalog]);
-
-  useEffect(() => {
     if (!search) {
-      fetchCatalog("");
-      return;
+      doFetch("");
+      return () => { cancelled = true; };
     }
-    const timer = setTimeout(() => fetchCatalog(search), 400);
-    return () => clearTimeout(timer);
-  }, [search, fetchCatalog]);
+    const timer = setTimeout(() => doFetch(search), 400);
+    return () => { cancelled = true; clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, productId, refreshKey]);
 
   if (selectedForAttach) {
     return (
@@ -321,7 +317,7 @@ function CatalogModal({
           onCancel={() => setSelectedForAttach(null)}
           onSuccess={() => {
             setSelectedForAttach(null);
-            fetchCatalog(search);
+            setRefreshKey((k) => k + 1);
             onAttachSuccess();
           }}
         />
