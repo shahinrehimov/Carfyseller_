@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
-import { ArrowLeft, Loader2, X } from "lucide-react";
+import { ArrowLeft, Clock, Loader2, X } from "lucide-react";
 import { useTranslationStore } from "@/store/translations";
 import { FileInput } from "@/components/ui/file-input";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
@@ -102,6 +102,7 @@ function EditProductVariantPage() {
   const [brandModelsLoading, setBrandModelsLoading] = useState(false);
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pendingRevision, setPendingRevision] = useState<any>(null);
 
   const [mainImage, setMainImage] = useState<any>({});
   const [hoverImage, setHoverImage] = useState<any>({});
@@ -185,6 +186,21 @@ function EditProductVariantPage() {
             controlPrivateApi.get("/brands/list").catch(() => ({ data: { data: [] } })),
           ]);
 
+        const cpvData = cpvRes.data.data;
+        const pvId = cpvData?.variant?.id;
+        const isCreatorVariant = cpvData?.variant?.is_creator ?? true;
+
+        // Fetch pending revision if seller is the creator
+        let revisionData = null;
+        if (isCreatorVariant && pvId) {
+          try {
+            const revRes = await controlPrivateApi.get(`/product-variants/${pvId}/pending-revision`);
+            revisionData = revRes.data.data?.data ? revRes.data.data : null;
+          } catch {
+            // ignore
+          }
+        }
+
         setDiscountTypes(discountTypesRes.data.data || []);
         setProductOptions(productOptionsRes.data.data || []);
         setBrands(brandsRes.data.data || []);
@@ -194,12 +210,13 @@ function EditProductVariantPage() {
         );
         setCities(allCities);
 
-        const cpvData = cpvRes.data.data;
         setCpv(cpvData);
-        setIsCreator(cpvData.variant?.is_creator ?? true);
+        setIsCreator(isCreatorVariant);
+        setPendingRevision(revisionData);
 
-        const pv = cpvData.variant;
-        const existingBrandId = pv?.brand_model?.brand_id || pv?.product?.brand?.id;
+        // If pending revision exists, pre-populate form with revision data
+        const pv = revisionData ? { ...cpvData.variant, ...revisionData.data } : cpvData.variant;
+        const existingBrandId = cpvData.variant?.brand_model?.brand_id || cpvData.variant?.product?.brand?.id;
 
         if (existingBrandId) {
           try {
@@ -250,23 +267,26 @@ function EditProductVariantPage() {
             })) || [],
         };
 
-        if (pv?.main_image) {
-          const img = { file: "show", url: pv.main_image };
+        // Use revision images if available, otherwise use current variant images
+        const mainImgUrl = revisionData?.main_image || cpvData.variant?.main_image;
+        const hoverImgUrl = revisionData?.hover_image || cpvData.variant?.hover_image;
+        const extraImgs = revisionData?.images?.length
+          ? revisionData.images.map((i: any) => ({ file: "show", url: i.url }))
+          : cpvData.variant?.images?.urls?.map((url: string) => ({ file: "show", url })) || [];
+
+        if (mainImgUrl) {
+          const img = { file: "show", url: mainImgUrl };
           setMainImage(img);
           formValues.main_image = img;
         }
-        if (pv?.hover_image) {
-          const img = { file: "show", url: pv.hover_image };
+        if (hoverImgUrl) {
+          const img = { file: "show", url: hoverImgUrl };
           setHoverImage(img);
           formValues.hover_image = img;
         }
-        if (pv?.images?.urls && pv.images.urls.length > 0) {
-          const existingImages = pv.images.urls.map((url: string) => ({
-            file: "show",
-            url,
-          }));
-          setImages(existingImages);
-          formValues.images = existingImages;
+        if (extraImgs.length > 0) {
+          setImages(extraImgs);
+          formValues.images = extraImgs;
         }
 
         reset(formValues);
@@ -442,6 +462,11 @@ function EditProductVariantPage() {
           formData,
           { headers: { "Content-Type": "multipart/form-data" } }
         );
+        if (res.data.data?.pending_revision) {
+          toast.success(res.data.data.message || t("revision_pending_approval"));
+          setPendingRevision({ status: "pending" });
+          return;
+        }
       } else {
         res = await controlPrivateApi.post(
           `/company-product-variants/update/${variantId}`,
@@ -487,6 +512,16 @@ function EditProductVariantPage() {
         </Link>
         <h1 className="text-2xl font-bold">{t("edit_product_variant")}</h1>
       </div>
+
+      {/* Pending revision banner */}
+      {isCreator && pendingRevision && (
+        <div className="flex items-center gap-3 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-yellow-800">
+          <Clock className="h-5 w-5 shrink-0" />
+          <p className="text-sm font-medium">
+            {t("pending_revision_notice") || "Dəyişiklikləriniz admin təsdiqi gözləyir. Forma hazırda pending dəyişiklikləri əks etdirir."}
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Images Section — only for creator */}
