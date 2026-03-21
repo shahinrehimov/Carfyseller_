@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
-import { MultiSelect } from "@/components/ui/multi-select";
 import { ArrowLeft, Loader2, Search, X, Link2, Plus } from "lucide-react";
 import { useTranslationStore } from "@/store/translations";
 import { FileInput } from "@/components/ui/file-input";
@@ -42,6 +41,8 @@ function AddProductVariantPage() {
   const [catalogResults, setCatalogResults] = useState<CatalogSearchItem[]>([]);
   const [selectedVariantForAttach, setSelectedVariantForAttach] = useState<CatalogSearchItem | null>(null);
 
+  type SelectedModel = { id: number; title: string; brand_id: number; brand_title: string };
+
   // Shared state
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
@@ -49,6 +50,8 @@ function AddProductVariantPage() {
   const [brandModels, setBrandModels] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [brandModelsLoading, setBrandModelsLoading] = useState(false);
+  const [selectedModels, setSelectedModels] = useState<SelectedModel[]>([]);
+  const [modelSelectValue, setModelSelectValue] = useState<string>("");
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -63,7 +66,6 @@ function AddProductVariantPage() {
   // ─── Validation schemas ───────────────────────────────────────────────────
 
   const addNewSchema = Yup.object().shape({
-    brand_model_ids: Yup.array().of(Yup.number()).min(1, t("required_field")).required(t("required_field")),
     year: Yup.number()
       .transform((value, originalValue) => (originalValue === "" ? undefined : value))
       .required(t("required_field")),
@@ -144,7 +146,6 @@ function AddProductVariantPage() {
     resolver: yupResolver(addNewSchema),
     defaultValues: {
       brand_id: undefined as number | undefined,
-      brand_model_ids: [] as number[],
       year: "" as any,
       oem_code: "",
       city_id: undefined as number | undefined,
@@ -238,7 +239,7 @@ function AddProductVariantPage() {
   useEffect(() => {
     if (!selectedBrandId) {
       setBrandModels([]);
-      addNewForm.setValue("brand_model_ids", []);
+      setModelSelectValue("");
       return;
     }
     const fetchBrandModels = async () => {
@@ -246,13 +247,13 @@ function AddProductVariantPage() {
       try {
         const res = await controlPrivateApi.get(`/brands/${selectedBrandId}/models/list`);
         setBrandModels(res.data.data || []);
+        setModelSelectValue("");
       } catch {
         setBrandModels([]);
       } finally {
         setBrandModelsLoading(false);
       }
     };
-    addNewForm.setValue("brand_model_ids", []);
     fetchBrandModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBrandId]);
@@ -406,11 +407,9 @@ function AddProductVariantPage() {
         }
       });
 
-      if (data.brand_model_ids?.length) {
-        data.brand_model_ids.forEach((id: number, index: number) => {
-          formData.append(`brand_model_ids[${index}]`, String(id));
-        });
-      }
+      selectedModels.forEach((m, index) => {
+        formData.append(`brand_model_ids[${index}]`, String(m.id));
+      });
 
       if (mainImage?.file) formData.append("main_image", mainImage.file);
       if (hoverImage?.file) formData.append("hover_image", hoverImage.file);
@@ -922,25 +921,43 @@ function AddProductVariantPage() {
             {/* Brand Model */}
             <div className="space-y-2">
               <Label>{t("brand_model")} *</Label>
-              <Controller
-                name="brand_model_ids"
-                control={addNewForm.control}
-                render={({ field }) => (
-                  <MultiSelect
-                    value={(field.value as number[] || []).map(String)}
-                    onChange={(vals) => field.onChange(vals.map(Number))}
-                    placeholder={t("select_brand_model")}
-                    options={brandModels.map((model: any) => ({
-                      value: model.id.toString(),
-                      label: model.title,
-                    }))}
-                    disabled={loading || brandModelsLoading || !selectedBrandId}
-                  />
-                )}
-              />
-              {addNewForm.formState.errors.brand_model_ids && (
-                <p className="text-sm text-destructive">{addNewForm.formState.errors.brand_model_ids.message as string}</p>
+              {selectedModels.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  {selectedModels.map((model) => (
+                    <div key={model.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm bg-muted/30">
+                      <span>
+                        <span className="text-muted-foreground text-xs">{model.brand_title} · </span>
+                        {model.title}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedModels((prev) => prev.filter((m) => m.id !== model.id))}
+                        className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
+              <Select
+                value={modelSelectValue}
+                onValueChange={(value) => {
+                  const model = brandModels.find((m: any) => m.id.toString() === value);
+                  const brand = brands.find((b: any) => b.id === selectedBrandId);
+                  if (!model || selectedModels.some((m) => m.id === model.id)) return;
+                  setSelectedModels((prev) => [
+                    ...prev,
+                    { id: model.id, title: model.title, brand_id: selectedBrandId || 0, brand_title: brand?.title || "" },
+                  ]);
+                  setModelSelectValue("");
+                }}
+                placeholder={t("select_brand_model")}
+                options={brandModels
+                  .filter((m: any) => !selectedModels.some((sm) => sm.id === m.id))
+                  .map((model: any) => ({ value: model.id.toString(), label: model.title }))}
+                disabled={loading || brandModelsLoading || !selectedBrandId}
+              />
             </div>
 
             {/* Year */}

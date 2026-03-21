@@ -274,7 +274,6 @@ function AddProductPage() {
       then: (schema) => schema.required(t("required_field")),
       otherwise: (schema) => schema.notRequired(),
     }),
-    brand_model_ids: Yup.array().of(Yup.number()).notRequired(),
     oem_code: Yup.string().max(100).notRequired(),
     year: Yup.number()
       .transform((value, originalValue) =>
@@ -300,10 +299,14 @@ function AddProductPage() {
       .notRequired(),
   });
 
+  type SelectedModel = { id: number; title: string; brand_id: number; brand_title: string };
+
   // State
   const [brands, setBrands] = useState<any[]>([]);
   const [brandModels, setBrandModels] = useState<any[]>([]);
   const [brandModelsLoading, setBrandModelsLoading] = useState(false);
+  const [selectedModels, setSelectedModels] = useState<SelectedModel[]>([]);
+  const [modelSelectValue, setModelSelectValue] = useState<string>("");
   const [flattenedCategories, setFlattenedCategories] = useState<any[]>([]);
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
@@ -344,7 +347,6 @@ function AddProductPage() {
       sets: [],
       price: 0,
       brand_id: undefined,
-      brand_model_ids: [] as number[],
       oem_code: "",
       categories: [],
       main_category_id: undefined,
@@ -379,7 +381,7 @@ function AddProductPage() {
   useEffect(() => {
     if (!selectedBrandId) {
       setBrandModels([]);
-      setValue("brand_model_ids", []);
+      setModelSelectValue("");
       return;
     }
     const fetchBrandModels = async () => {
@@ -389,15 +391,15 @@ function AddProductPage() {
           `/brands/${selectedBrandId}/models/list`,
         );
         setBrandModels(res.data.data || []);
+        setModelSelectValue("");
       } catch {
         setBrandModels([]);
       } finally {
         setBrandModelsLoading(false);
       }
     };
-    setValue("brand_model_ids", []);
     fetchBrandModels();
-  }, [selectedBrandId, setValue]);
+  }, [selectedBrandId]);
 
   // Image handlers
   const handleMainImageChange = (newImage: any) => {
@@ -639,7 +641,7 @@ function AddProductPage() {
             })()
           : null,
         brand_id: data.brand_id,
-        brand_model_ids: data.brand_model_ids || [],
+        brand_model_ids: selectedModels.map((m) => m.id),
         categories: data.categories,
         main_category_id: data.main_category_id,
         year: data.year || null,
@@ -1304,27 +1306,43 @@ function AddProductPage() {
             {/* Brand Model */}
             <div className="space-y-2">
               <Label>{t("brand_model")}</Label>
-              <Controller
-                name="brand_model_ids"
-                control={control}
-                render={({ field }) => (
-                  <MultiSelect
-                    value={(field.value as number[] || []).map(String)}
-                    onChange={(vals) => field.onChange(vals.map(Number))}
-                    placeholder={t("select_brand_model")}
-                    options={brandModels.map((model: any) => ({
-                      value: model.id.toString(),
-                      label: model.title,
-                    }))}
-                    disabled={loading || brandModelsLoading || !selectedBrandId}
-                  />
-                )}
-              />
-              {errors.brand_model_ids && (
-                <p className="text-sm text-destructive">
-                  {errors.brand_model_ids.message as string}
-                </p>
+              {selectedModels.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  {selectedModels.map((model) => (
+                    <div key={model.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm bg-muted/30">
+                      <span>
+                        <span className="text-muted-foreground text-xs">{model.brand_title} · </span>
+                        {model.title}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedModels((prev) => prev.filter((m) => m.id !== model.id))}
+                        className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
+              <Select
+                value={modelSelectValue}
+                onValueChange={(value) => {
+                  const model = brandModels.find((m: any) => m.id.toString() === value);
+                  const brand = brands.find((b: any) => b.id === selectedBrandId);
+                  if (!model || selectedModels.some((m) => m.id === model.id)) return;
+                  setSelectedModels((prev) => [
+                    ...prev,
+                    { id: model.id, title: model.title, brand_id: selectedBrandId || 0, brand_title: brand?.title || "" },
+                  ]);
+                  setModelSelectValue("");
+                }}
+                placeholder={t("select_brand_model")}
+                options={brandModels
+                  .filter((m: any) => !selectedModels.some((sm) => sm.id === m.id))
+                  .map((model: any) => ({ value: model.id.toString(), label: model.title }))}
+                disabled={loading || brandModelsLoading || !selectedBrandId}
+              />
             </div>
 
             {/* OEM Code */}

@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
-import { MultiSelect } from "@/components/ui/multi-select";
 import { ArrowLeft, Clock, Loader2, X } from "lucide-react";
 import { useTranslationStore } from "@/store/translations";
 import { FileInput } from "@/components/ui/file-input";
@@ -70,7 +69,6 @@ function EditProductVariantPage() {
     }),
     oem_code: Yup.string().max(100).notRequired(),
     brand_id: Yup.number().notRequired(),
-    brand_model_ids: Yup.array().of(Yup.number()).notRequired(),
     year: Yup.number()
       .transform((value, originalValue) => (originalValue === "" ? undefined : value))
       .notRequired(),
@@ -93,6 +91,8 @@ function EditProductVariantPage() {
       .notRequired(),
   });
 
+  type SelectedModel = { id: number; title: string; brand_id: number; brand_title: string };
+
   const [cpv, setCpv] = useState<any>(null);
   const [isCreator, setIsCreator] = useState(true);
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
@@ -101,6 +101,8 @@ function EditProductVariantPage() {
   const [brands, setBrands] = useState<any[]>([]);
   const [brandModels, setBrandModels] = useState<any[]>([]);
   const [brandModelsLoading, setBrandModelsLoading] = useState(false);
+  const [selectedModels, setSelectedModels] = useState<SelectedModel[]>([]);
+  const [modelSelectValue, setModelSelectValue] = useState<string>("");
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingRevision, setPendingRevision] = useState<any>(null);
@@ -134,7 +136,6 @@ function EditProductVariantPage() {
       discount_end_at: undefined,
       oem_code: "",
       brand_id: undefined,
-      brand_model_ids: [] as number[],
       year: "" as any,
       city_id: undefined,
       options: [],
@@ -151,12 +152,11 @@ function EditProductVariantPage() {
     if (!selectedBrandId) {
       if (prevBrandIdRef.current !== undefined) {
         setBrandModels([]);
-        setValue("brand_model_ids", []);
+        setModelSelectValue("");
       }
       prevBrandIdRef.current = undefined;
       return;
     }
-    const isInitialSet = prevBrandIdRef.current === undefined;
     prevBrandIdRef.current = selectedBrandId;
 
     const fetchBrandModels = async () => {
@@ -164,9 +164,7 @@ function EditProductVariantPage() {
       try {
         const res = await controlPrivateApi.get(`/brands/${selectedBrandId}/models/list`);
         setBrandModels(res.data.data || []);
-        if (!isInitialSet) {
-          setValue("brand_model_ids", []);
-        }
+        setModelSelectValue("");
       } catch {
         setBrandModels([]);
       } finally {
@@ -174,7 +172,7 @@ function EditProductVariantPage() {
       }
     };
     fetchBrandModels();
-  }, [selectedBrandId, setValue]);
+  }, [selectedBrandId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -205,9 +203,10 @@ function EditProductVariantPage() {
           }
         }
 
+        const allBrands = brandsRes.data.data || [];
         setDiscountTypes(discountTypesRes.data.data || []);
         setProductOptions(productOptionsRes.data.data || []);
-        setBrands(brandsRes.data.data || []);
+        setBrands(allBrands);
 
         const allCities = (countriesRes.data.data || []).flatMap(
           (country: any) => country.cities || []
@@ -222,6 +221,21 @@ function EditProductVariantPage() {
         // For brand pre-selection use the first of the current variant's brand models
         const existingBrandModels: Array<{id: number; title: string; brand_id?: number}> = pv?.brand_models || [];
         const existingBrandId = existingBrandModels[0]?.brand_id || pv?.product?.brand?.id;
+
+        // Init selected models — prefer revision's proposed IDs if pending revision exists
+        const makeModelEntry = (m: {id: number; title: string; brand_id?: number}) => {
+          const brand = allBrands.find((b: any) => b.id === m.brand_id);
+          return { id: m.id, title: m.title, brand_id: m.brand_id || 0, brand_title: brand?.title || "" };
+        };
+        if (revision?.data?.brand_model_ids?.length) {
+          const revisionModels = revision.data.brand_model_ids.map((id: number) => {
+            const match = existingBrandModels.find((m) => m.id === id);
+            return match ? makeModelEntry(match) : { id, title: `#${id}`, brand_id: 0, brand_title: "" };
+          });
+          setSelectedModels(revisionModels);
+        } else {
+          setSelectedModels(existingBrandModels.map(makeModelEntry));
+        }
 
         if (existingBrandId) {
           try {
@@ -255,7 +269,6 @@ function EditProductVariantPage() {
           // PV (canonical) fields — use revision's proposed values if pending revision exists
           oem_code: rd?.oem_code ?? pv?.oem_code ?? "",
           brand_id: existingBrandId || undefined,
-          brand_model_ids: rd?.brand_model_ids ?? existingBrandModels.map((m: any) => m.id),
           year: rd?.year ?? pv?.year ?? "",
           options:
             pv?.options?.map((opt: any) => ({
@@ -416,9 +429,9 @@ function EditProductVariantPage() {
         }
       });
 
-      if (isCreator && data.brand_model_ids?.length) {
-        data.brand_model_ids.forEach((id: number, index: number) => {
-          formData.append(`brand_model_ids[${index}]`, String(id));
+      if (isCreator) {
+        selectedModels.forEach((m, index) => {
+          formData.append(`brand_model_ids[${index}]`, String(m.id));
         });
       }
 
@@ -672,21 +685,42 @@ function EditProductVariantPage() {
             {/* Brand Model — only for creator */}
             {isCreator && <div className="space-y-2">
               <Label>{t("brand_model")}</Label>
-              <Controller
-                name="brand_model_ids"
-                control={control}
-                render={({ field }) => (
-                  <MultiSelect
-                    value={(field.value as number[] || []).map(String)}
-                    onChange={(vals) => field.onChange(vals.map(Number))}
-                    placeholder={t("select_brand_model")}
-                    options={brandModels.map((model: any) => ({
-                      value: model.id.toString(),
-                      label: model.title,
-                    }))}
-                    disabled={loading || brandModelsLoading || !selectedBrandId}
-                  />
-                )}
+              {selectedModels.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  {selectedModels.map((model) => (
+                    <div key={model.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm bg-muted/30">
+                      <span>
+                        <span className="text-muted-foreground text-xs">{model.brand_title} · </span>
+                        {model.title}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedModels((prev) => prev.filter((m) => m.id !== model.id))}
+                        className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Select
+                value={modelSelectValue}
+                onValueChange={(value) => {
+                  const model = brandModels.find((m: any) => m.id.toString() === value);
+                  const brand = brands.find((b: any) => b.id === selectedBrandId);
+                  if (!model || selectedModels.some((m) => m.id === model.id)) return;
+                  setSelectedModels((prev) => [
+                    ...prev,
+                    { id: model.id, title: model.title, brand_id: selectedBrandId || 0, brand_title: brand?.title || "" },
+                  ]);
+                  setModelSelectValue("");
+                }}
+                placeholder={t("select_brand_model")}
+                options={brandModels
+                  .filter((m: any) => !selectedModels.some((sm) => sm.id === m.id))
+                  .map((model: any) => ({ value: model.id.toString(), label: model.title }))}
+                disabled={loading || brandModelsLoading || !selectedBrandId}
               />
             </div>}
 
