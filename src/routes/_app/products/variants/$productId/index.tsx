@@ -66,7 +66,7 @@ function ProductVariantsPage() {
       if (params?.search ?? search) {
         queryParams.append("search", params?.search ?? search);
       }
-      const res = await controlPrivateApi.get(`/sellers/product-variants/load?${queryParams}`);
+      const res = await controlPrivateApi.get(`/company-product-variants/load?${queryParams}`);
       setList(res.data.data || []);
       setMeta(res.data.meta || { total: 0, current_page: 1, per_page: 10, last_page: 1 });
     } catch {
@@ -89,7 +89,7 @@ function ProductVariantsPage() {
 
   const toggleStatus = async (id: number, currentStatus: boolean) => {
     try {
-      await controlPrivateApi.post(`/sellers/product-variants/change-active-status/${id}`, {
+      await controlPrivateApi.post(`/company-product-variants/change-active-status/${id}`, {
         is_active: !currentStatus,
       });
       setList((prev) =>
@@ -112,7 +112,7 @@ function ProductVariantsPage() {
     if (!selectedVariant) return;
     setDeleteLoading(true);
     try {
-      await controlPrivateApi.delete(`/sellers/product-variants/delete/${selectedVariant.id}`);
+      await controlPrivateApi.delete(`/company-product-variants/detach/${selectedVariant.id}`);
       toast.success(t("deleted_successfully"));
       setIsDeleteModalOpen(false);
       setSelectedVariant(null);
@@ -131,7 +131,7 @@ function ProductVariantsPage() {
     setHistoryLoading(true);
     try {
       const res = await controlPrivateApi.get(
-        `/sellers/product-variants/${variant.id}/approval-status/history`
+        `/company-product-variants/${variant.id}/approval-status/history`
       );
       setHistoryList(res.data.data || []);
     } catch {
@@ -151,7 +151,7 @@ function ProductVariantsPage() {
     setResendLoading(true);
     try {
       await controlPrivateApi.post(
-        `/sellers/product-variants/${resendVariant.id}/approval-status/resend`
+        `/company-product-variants/${resendVariant.id}/approval-status/resend`
       );
       toast.success(t("resend_success"));
       setIsResendConfirmOpen(false);
@@ -167,7 +167,7 @@ function ProductVariantsPage() {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-US").format(price);
 
-  const productTitle = list[0]?.product?.title;
+  const productTitle = list[0]?.variant?.product?.title;
 
   return (
     <div className="space-y-4">
@@ -211,7 +211,9 @@ function ProductVariantsPage() {
             <TableRow>
               <TableHead>No</TableHead>
               <TableHead>{t("image")}</TableHead>
-              <TableHead>{t("slug")}</TableHead>
+              <TableHead>{t("variant")}</TableHead>
+              <TableHead>{t("oem_code")}</TableHead>
+              <TableHead>{t("city")}</TableHead>
               <TableHead>{t("stock")}</TableHead>
               <TableHead>{t("price")}</TableHead>
               <TableHead>{t("final_price")}</TableHead>
@@ -223,7 +225,7 @@ function ProductVariantsPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center">
+                <TableCell colSpan={11} className="text-center">
                   <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                 </TableCell>
               </TableRow>
@@ -232,17 +234,26 @@ function ProductVariantsPage() {
                 <TableRow key={item.id}>
                   <TableCell>{(page - 1) * meta.per_page + index + 1}</TableCell>
                   <TableCell>
-                    {item.main_image ? (
+                    {item.variant?.main_image || item.seller_images?.[0]?.url ? (
                       <img
-                        src={item.main_image}
-                        alt={item.slug}
+                        src={item.variant?.main_image || item.seller_images[0]?.url}
+                        alt={item.variant?.slug}
                         className="h-10 w-10 rounded object-cover"
                       />
                     ) : (
                       <div className="h-10 w-10 rounded bg-muted" />
                     )}
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate">{item.slug}</TableCell>
+                  <TableCell className="max-w-[160px]">
+                    <div className="truncate font-medium">{item.variant?.title || item.variant?.slug}</div>
+                    <div className="text-xs text-muted-foreground">{item.variant?.slug}</div>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {item.variant?.oem_code || "—"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {item.city?.title || "—"}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={item.stock > 0 ? "default" : "destructive"}>
                       {item.stock}
@@ -280,7 +291,7 @@ function ProductVariantsPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
                       <Link to="/products/variants/$productId/show/$variantId" params={{ productId, variantId: String(item.id) }}>
                         <Button variant="ghost" size="icon">
                           <Eye className="h-4 w-4" />
@@ -322,7 +333,7 @@ function ProductVariantsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} className="text-center">
+                <TableCell colSpan={11} className="text-center">
                   {t("no_data_found")}
                 </TableCell>
               </TableRow>
@@ -374,7 +385,7 @@ function ProductVariantsPage() {
       <Modal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
-        title={`${historyVariant?.slug ?? ""} — ${t("history")}`}
+        title={`${historyVariant?.variant?.slug ?? ""} — ${t("history")}`}
         size="lg"
       >
         {historyLoading ? (

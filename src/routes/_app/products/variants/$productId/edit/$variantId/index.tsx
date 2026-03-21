@@ -67,6 +67,7 @@ function EditProductVariantPage() {
       then: (schema) => schema.required(t("required_field")),
       otherwise: (schema) => schema.notRequired(),
     }),
+    oem_code: Yup.string().max(100).notRequired(),
     brand_id: Yup.number().notRequired(),
     brand_model_id: Yup.number().notRequired(),
     year: Yup.number()
@@ -91,7 +92,7 @@ function EditProductVariantPage() {
       .notRequired(),
   });
 
-  const [variant, setVariant] = useState<any>(null);
+  const [cpv, setCpv] = useState<any>(null);
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
@@ -126,6 +127,7 @@ function EditProductVariantPage() {
       discount_type: "",
       discount_start_at: undefined,
       discount_end_at: undefined,
+      oem_code: "",
       brand_id: undefined,
       brand_model_id: undefined,
       year: "" as any,
@@ -155,7 +157,7 @@ function EditProductVariantPage() {
     const fetchBrandModels = async () => {
       setBrandModelsLoading(true);
       try {
-        const res = await controlPrivateApi.get(`/sellers/brands/${selectedBrandId}/models/list`);
+        const res = await controlPrivateApi.get(`/brands/${selectedBrandId}/models/list`);
         setBrandModels(res.data.data || []);
         if (!isInitialSet) {
           setValue("brand_model_id", undefined);
@@ -173,13 +175,13 @@ function EditProductVariantPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [discountTypesRes, productOptionsRes, variantRes, countriesRes, brandsRes] =
+        const [discountTypesRes, productOptionsRes, cpvRes, countriesRes, brandsRes] =
           await Promise.all([
-            controlPrivateApi.get("/sellers/discount-types/list").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get("/sellers/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get(`/sellers/product-variants/show/${variantId}`),
-            controlPrivateApi.get("/sellers/countries/list?with_cities=yes").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get("/sellers/brands/list").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/discount-types/list").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get(`/company-product-variants/show/${variantId}`),
+            controlPrivateApi.get("/countries/list?with_cities=yes").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/brands/list").catch(() => ({ data: { data: [] } })),
           ]);
 
         setDiscountTypes(discountTypesRes.data.data || []);
@@ -191,14 +193,15 @@ function EditProductVariantPage() {
         );
         setCities(allCities);
 
-        const variantData = variantRes.data.data;
-        setVariant(variantData);
+        const cpvData = cpvRes.data.data;
+        setCpv(cpvData);
 
-        const existingBrandId = variantData.product?.brand?.id || variantData.brand?.id;
+        const pv = cpvData.variant;
+        const existingBrandId = pv?.product?.brand?.id || pv?.brand?.id;
 
         if (existingBrandId) {
           try {
-            const modelsRes = await controlPrivateApi.get(`/sellers/brands/${existingBrandId}/models/list`);
+            const modelsRes = await controlPrivateApi.get(`/brands/${existingBrandId}/models/list`);
             setBrandModels(modelsRes.data.data || []);
           } catch {
             // ignore
@@ -209,23 +212,26 @@ function EditProductVariantPage() {
           main_image: {},
           hover_image: {},
           images: [{}],
-          stock: variantData.stock ?? 0,
-          price: variantData.price?.toString() || "",
-          has_discount: variantData.discount > 0,
-          discount: variantData.discount?.toString() || "",
-          discount_type: variantData.discount_type || "",
-          discount_start_at: variantData.discount_start_at
-            ? new Date(variantData.discount_start_at)
+          // CPV fields
+          stock: cpvData.stock ?? 0,
+          price: cpvData.price?.toString() || "",
+          has_discount: cpvData.discount > 0,
+          discount: cpvData.discount?.toString() || "",
+          discount_type: cpvData.discount_type || "",
+          discount_start_at: cpvData.discount_start_at
+            ? new Date(cpvData.discount_start_at)
             : undefined,
-          discount_end_at: variantData.discount_end_at
-            ? new Date(variantData.discount_end_at)
+          discount_end_at: cpvData.discount_end_at
+            ? new Date(cpvData.discount_end_at)
             : undefined,
+          city_id: cpvData.city?.id || undefined,
+          // PV (canonical) fields
+          oem_code: pv?.oem_code || "",
           brand_id: existingBrandId || undefined,
-          brand_model_id: variantData.brand_model?.id || undefined,
-          year: variantData.year || "",
-          city_id: variantData.city?.id || undefined,
+          brand_model_id: pv?.brand_model?.id || undefined,
+          year: pv?.year || "",
           options:
-            variantData.options?.map((opt: any) => ({
+            pv?.options?.map((opt: any) => ({
               option_id: opt.option.id,
               option: opt.option,
               value: opt.option.is_translatable ? undefined : opt.value,
@@ -242,19 +248,18 @@ function EditProductVariantPage() {
             })) || [],
         };
 
-        if (variantData.main_image) {
-          const img = { file: "show", url: variantData.main_image };
+        if (pv?.main_image) {
+          const img = { file: "show", url: pv.main_image };
           setMainImage(img);
           formValues.main_image = img;
         }
-        if (variantData.hover_image) {
-          const img = { file: "show", url: variantData.hover_image };
+        if (pv?.hover_image) {
+          const img = { file: "show", url: pv.hover_image };
           setHoverImage(img);
           formValues.hover_image = img;
         }
-
-        if (variantData.images?.urls && variantData.images.urls.length > 0) {
-          const existingImages = variantData.images.urls.map((url: string) => ({
+        if (pv?.images?.urls && pv.images.urls.length > 0) {
+          const existingImages = pv.images.urls.map((url: string) => ({
             file: "show",
             url,
           }));
@@ -350,8 +355,12 @@ function EditProductVariantPage() {
 
       const basicFields: any = {
         has_discount: data.has_discount,
+        oem_code: data.oem_code || null,
         year: data.year || null,
         brand_model_id: data.brand_model_id || null,
+        city_id: data.city_id || null,
+        stock: data.stock,
+        price: data.price || null,
       };
 
       if (data.has_discount) {
@@ -420,8 +429,9 @@ function EditProductVariantPage() {
         });
       }
 
+      const pvId = cpv?.variant?.id;
       const res = await controlPrivateApi.post(
-        `/sellers/product-variants/update/${variantId}`,
+        `/product-variants/update/${pvId}`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -444,7 +454,7 @@ function EditProductVariantPage() {
     );
   }
 
-  if (!variant && !loading) {
+  if (!cpv && !loading) {
     return (
       <div className="rounded-lg border border-destructive p-4 text-destructive">
         {t("variant_not_found")}
@@ -603,6 +613,23 @@ function EditProductVariantPage() {
                       label: model.title,
                     }))}
                     disabled={loading || brandModelsLoading || !selectedBrandId}
+                  />
+                )}
+              />
+            </div>
+
+            {/* OEM Code */}
+            <div className="space-y-2">
+              <Label htmlFor="oem_code">{t("oem_code")}</Label>
+              <Controller
+                name="oem_code"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value ?? ""}
+                    id="oem_code"
+                    placeholder={t("oem_code")}
                   />
                 )}
               />

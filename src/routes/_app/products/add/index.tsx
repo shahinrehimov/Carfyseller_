@@ -12,21 +12,57 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Upload, X } from "lucide-react";
+import { ArrowLeft, Loader2, Upload, X, Search, Link2, Plus } from "lucide-react";
 import { useTranslationStore } from "@/store/translations";
 import { FileInput } from "@/components/ui/file-input";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { Autocomplete } from "@/components/ui/autocomplete";
+import { Badge } from "@/components/ui/badge";
+import { searchCatalog } from "@/lib/queries/products";
+import type { CatalogSearchItem } from "@/lib/queries/products";
 
 export const Route = createFileRoute("/_app/products/add/")({
   component: AddProductPage,
 });
 
+type AddStep = "search" | "form";
+
 function AddProductPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const langs = useTranslationStore((state) => state.langs);
+
+  // Search step state
+  const [step, setStep] = useState<AddStep>("search");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchToken, setSearchToken] = useState<string | null>(null);
+  const [catalogResults, setCatalogResults] = useState<CatalogSearchItem[]>([]);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearchLoading(true);
+    setCatalogResults([]);
+    setSearchToken(null);
+    try {
+      const result = await searchCatalog({ search: searchQuery });
+      setSearchToken(result.search_token);
+      setCatalogResults(result.data || []);
+    } catch {
+      toast.error(t("error_loading_data"));
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleProceedToForm = () => {
+    if (!searchToken) {
+      toast.error(t("search_required_before_add"));
+      return;
+    }
+    setStep("form");
+  };
 
   // Validation schema
   const validationSchema = Yup.object().shape({
@@ -116,6 +152,7 @@ function AddProductPage() {
       otherwise: (schema) => schema.notRequired(),
     }),
     brand_model_id: Yup.number().notRequired(),
+    oem_code: Yup.string().max(100).notRequired(),
     year: Yup.number()
       .transform((value, originalValue) =>
         originalValue === "" ? undefined : value,
@@ -185,6 +222,7 @@ function AddProductPage() {
       price: 0,
       brand_id: undefined,
       brand_model_id: undefined,
+      oem_code: "",
       categories: [],
       main_category_id: undefined,
       stock: 0,
@@ -448,6 +486,10 @@ function AddProductPage() {
   }, [selectedCategories, getValues, setValue]);
 
   const onSubmit = async (data: any) => {
+    if (!searchToken) {
+      toast.error(t("search_required_before_add"));
+      return;
+    }
     if (pending) return;
     setPending(true);
 
@@ -457,6 +499,7 @@ function AddProductPage() {
       // Basic fields
       const basicFields: any = {
         slug: data.slug || null,
+        oem_code: data.oem_code || null,
         price: data.price || null,
         discount: data.discount || null,
         discount_type: data.discount_type || null,
@@ -604,6 +647,7 @@ function AddProductPage() {
       const res = await controlPrivateApi.post("/products/add", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+          "X-Search-Token": searchToken,
         },
       });
 
@@ -616,15 +660,95 @@ function AddProductPage() {
     }
   };
 
+  // ── Step 1: Search catalog ────────────────────────────────────────────────
+  if (step === "search") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <Link to="/products">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold">{t("add_product")}</h1>
+        </div>
+
+        <div className="rounded-lg border p-6 space-y-4">
+          <h2 className="text-lg font-semibold">{t("search_catalog")}</h2>
+          <p className="text-sm text-muted-foreground">{t("search_catalog_description")}</p>
+
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={t("search_by_title_or_oem")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={handleSearch} disabled={searchLoading || !searchQuery.trim()}>
+              {searchLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+
+          {catalogResults.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{t("search_results")}</p>
+              <div className="rounded-md border divide-y">
+                {catalogResults.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{item.product?.title || item.slug}</span>
+                        {item.already_attached && (
+                          <Badge variant="secondary">{t("already_attached")}</Badge>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                        {item.oem_code && <span>OEM: {item.oem_code}</span>}
+                        {item.brand_model && <span>{item.brand_model.title}</span>}
+                        {item.year && <span>{item.year}</span>}
+                      </div>
+                    </div>
+                    {!item.already_attached && (
+                      <Button variant="outline" size="sm" disabled>
+                        <Link2 className="mr-2 h-3 w-3" />
+                        {t("attach")}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {searchToken && (
+            <div className="pt-2 border-t">
+              <Button onClick={handleProceedToForm} className="w-full">
+                <Plus className="mr-2 h-4 w-4" />
+                {t("add_new_product_not_found")}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Step 2: Product form ──────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Link to="/products">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button variant="ghost" size="icon" onClick={() => setStep("search")}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <h1 className="text-2xl font-bold">{t("add_product")}</h1>
       </div>
 
@@ -803,6 +927,28 @@ function AddProductPage() {
               {errors.brand_model_id && (
                 <p className="text-sm text-destructive">
                   {errors.brand_model_id.message}
+                </p>
+              )}
+            </div>
+
+            {/* OEM Code */}
+            <div className="space-y-2">
+              <Label htmlFor="oem_code">{t("oem_code")}</Label>
+              <Controller
+                name="oem_code"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value || ""}
+                    id="oem_code"
+                    placeholder={t("oem_code")}
+                  />
+                )}
+              />
+              {errors.oem_code && (
+                <p className="text-sm text-destructive">
+                  {errors.oem_code.message}
                 </p>
               )}
             </div>
@@ -1493,11 +1639,9 @@ function AddProductPage() {
 
         {/* Submit Button */}
         <div className="flex justify-end space-x-2">
-          <Link to="/products">
-            <Button type="button" variant="outline">
-              {t("cancel")}
-            </Button>
-          </Link>
+          <Button type="button" variant="outline" onClick={() => setStep("search")}>
+            {t("cancel")}
+          </Button>
           <Button type="submit" disabled={pending || loading}>
             {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t("add_product")}

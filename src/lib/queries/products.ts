@@ -113,44 +113,101 @@ export interface ProductVariant {
 
 export interface CatalogSearchItem {
   id: number;
+  uuid: string;
   slug: string;
-  title: string;
   oem_code: string | null;
   year: number | null;
   brand_model: { id: number; title: string } | null;
   options: Array<any>;
   already_attached: boolean;
+  seller_listing: {
+    id: number;
+    uuid: string;
+    price: number;
+    price_final: number;
+    stock: number;
+    discount_type: string | null;
+    discount: number;
+    discount_start_at: string | null;
+    discount_end_at: string | null;
+    city_id: number | null;
+    is_active: boolean;
+    approval_status: string;
+  } | null;
+  main_image: string | null;
+  hover_image: string | null;
+  product: {
+    id: number;
+    uuid: string;
+    slug: string;
+    title: string;
+    main_image: string | null;
+    hover_image: string | null;
+    is_set: boolean;
+    is_active: boolean;
+    created_date: string;
+  } | null;
+  is_set: boolean;
+  stock: number;
+  price: number;
+  price_final: number;
+  discount_type: string | null;
+  discount_type_title: string | null;
+  discount: number;
+  is_default: boolean;
+  is_active: boolean;
+  approval_status: string;
+  approval_status_label: string;
+  approval_status_message: string | null;
+  created_date: string;
 }
 
 export interface CatalogSearchResponse {
   search_token: string;
-  data: {
-    data: CatalogSearchItem[];
-    meta: { current_page: number; last_page: number; total: number };
-  };
+  data: CatalogSearchItem[];
 }
 
 export interface CompanyProductVariant {
   id: number;
   uuid: string;
+  variant: {
+    id: number;
+    uuid: string;
+    slug: string;
+    oem_code: string | null;
+    title: string;
+    main_image: string | null;
+    hover_image: string | null;
+    is_set: boolean;
+    brand_model: { id: number; title: string } | null;
+    year: number | null;
+    product: {
+      id: number;
+      uuid: string;
+      slug: string;
+      title: string;
+      main_image: string | null;
+      hover_image: string | null;
+      is_set: boolean;
+      is_active: boolean;
+      created_date: string;
+    } | null;
+  };
   stock: number;
-  price: string;
-  price_final: string;
-  discount: string | null;
+  price: number;
+  price_final: number;
+  discount: number | null;
   discount_type: string | null;
+  discount_type_title: string | null;
   discount_start_at: string | null;
   discount_end_at: string | null;
-  city: { id: number; title: string } | null;
+  city: { id: number; title: string; country_id?: number } | null;
   approval_status: string;
   approval_status_label?: string;
+  approval_status_message: string | null;
   is_active: boolean;
-  images: { urls: string[]; media_ids: number[] } | null;
-  product_variant: {
-    id: number;
-    title: string;
-    oem_code: string | null;
-    brand_model: { id: number; title: string } | null;
-  };
+  seller_images: Array<{ id: number; url: string }>;
+  created_date: string;
 }
 
 interface ProductsResponse {
@@ -256,23 +313,23 @@ async function getProductVariants(filters: ProductVariantsFilters) {
     }
   });
 
-  const response = await controlPrivateApi.get(`/sellers/product-variants/load?${queryParams}`);
+  const response = await controlPrivateApi.get(`/product-variants/load?${queryParams}`);
   return response.data as ProductVariantsResponse;
 }
 
 async function getProductVariant(id: number) {
-  const response = await controlPrivateApi.get(`/sellers/product-variants/show/${id}`);
+  const response = await controlPrivateApi.get(`/product-variants/show/${id}`);
   return response.data.data as ProductVariant;
 }
 
 async function deleteProductVariant(id: number) {
-  const response = await controlPrivateApi.delete(`/sellers/product-variants/delete/${id}`);
+  const response = await controlPrivateApi.delete(`/product-variants/delete/${id}`);
   return response.data;
 }
 
 async function toggleProductVariantStatus(id: number, isActive: boolean) {
   const response = await controlPrivateApi.post(
-    `/sellers/product-variants/change-active-status/${id}`,
+    `/product-variants/change-active-status/${id}`,
     { is_active: !isActive }
   );
   return response.data;
@@ -287,9 +344,9 @@ export async function searchCatalog(filters: CatalogSearchFilters) {
   });
 
   const response = await controlPrivateApi.get(
-    `/sellers/product-variants/search-catalog?${queryParams}`
+    `/product-variants/search-catalog?${queryParams}`
   );
-  return response.data.data as CatalogSearchResponse;
+  return response.data as CatalogSearchResponse;
 }
 
 // API functions - Company Product Variants (Listings)
@@ -302,26 +359,26 @@ async function getCompanyProductVariants(filters: CompanyProductVariantsFilters)
   });
 
   const response = await controlPrivateApi.get(
-    `/sellers/company-product-variants/load?${queryParams}`
+    `/company-product-variants/load?${queryParams}`
   );
   return response.data as CompanyProductVariantsResponse;
 }
 
 async function getCompanyProductVariant(id: number) {
-  const response = await controlPrivateApi.get(`/sellers/company-product-variants/show/${id}`);
+  const response = await controlPrivateApi.get(`/company-product-variants/show/${id}`);
   return response.data.data as CompanyProductVariant;
 }
 
 async function detachCompanyProductVariant(id: number) {
   const response = await controlPrivateApi.delete(
-    `/sellers/company-product-variants/detach/${id}`
+    `/company-product-variants/detach/${id}`
   );
   return response.data;
 }
 
 async function toggleCompanyProductVariantStatus(id: number, isActive: boolean) {
   const response = await controlPrivateApi.post(
-    `/sellers/company-product-variants/change-active-status/${id}`,
+    `/company-product-variants/change-active-status/${id}`,
     { is_active: !isActive }
   );
   return response.data;

@@ -185,10 +185,10 @@ function AddProductVariantPage() {
       try {
         const [discountTypesRes, productOptionsRes, countriesRes, brandsRes] =
           await Promise.all([
-            controlPrivateApi.get("/sellers/discount-types/list").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get("/sellers/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get("/sellers/countries/list?with_cities=yes").catch(() => ({ data: { data: [] } })),
-            controlPrivateApi.get("/sellers/brands/list").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/discount-types/list").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/countries/list?with_cities=yes").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/brands/list").catch(() => ({ data: { data: [] } })),
           ]);
 
         setDiscountTypes(discountTypesRes.data.data || []);
@@ -229,13 +229,13 @@ function AddProductVariantPage() {
   useEffect(() => {
     if (!selectedBrandId) {
       setBrandModels([]);
-      addNewForm.setValue("brand_model_id", undefined);
+      addNewForm.setValue("brand_model_id", undefined as any);
       return;
     }
     const fetchBrandModels = async () => {
       setBrandModelsLoading(true);
       try {
-        const res = await controlPrivateApi.get(`/sellers/brands/${selectedBrandId}/models/list`);
+        const res = await controlPrivateApi.get(`/brands/${selectedBrandId}/models/list`);
         setBrandModels(res.data.data || []);
       } catch {
         setBrandModels([]);
@@ -243,7 +243,7 @@ function AddProductVariantPage() {
         setBrandModelsLoading(false);
       }
     };
-    addNewForm.setValue("brand_model_id", undefined);
+    addNewForm.setValue("brand_model_id", undefined as any);
     fetchBrandModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBrandId]);
@@ -258,7 +258,7 @@ function AddProductVariantPage() {
     try {
       const result = await searchCatalog({ search: searchQuery, product_id: Number(productId) });
       setSearchToken(result.search_token);
-      setCatalogResults(result.data.data || []);
+      setCatalogResults(result.data || []);
     } catch {
       toast.error(t("error_loading_data"));
     } finally {
@@ -434,7 +434,7 @@ function AddProductVariantPage() {
       }
 
       const res = await controlPrivateApi.post(
-        `/sellers/product-variants/add/${productId}`,
+        `/product-variants/add/${productId}`,
         formData,
         {
           headers: {
@@ -495,7 +495,7 @@ function AddProductVariantPage() {
       });
 
       const res = await controlPrivateApi.post(
-        `/sellers/company-product-variants/attach/${selectedVariantForAttach.id}`,
+        `/company-product-variants/attach/${selectedVariantForAttach.id}`,
         formData,
         {
           headers: {
@@ -559,7 +559,7 @@ function AddProductVariantPage() {
                   <div key={item.id} className="flex items-center justify-between p-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{item.title}</span>
+                        <span className="font-medium">{item.product?.title || item.slug}</span>
                         {item.already_attached && (
                           <Badge variant="secondary">{t("already_attached")}</Badge>
                         )}
@@ -611,7 +611,7 @@ function AddProductVariantPage() {
         </div>
 
         <div className="rounded-lg border p-4 bg-muted/40 space-y-1">
-          <p className="text-sm font-medium">{selectedVariantForAttach.title}</p>
+          <p className="text-sm font-medium">{selectedVariantForAttach.product?.title || selectedVariantForAttach.slug}</p>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
             {selectedVariantForAttach.oem_code && (
               <span>OEM: {selectedVariantForAttach.oem_code}</span>
