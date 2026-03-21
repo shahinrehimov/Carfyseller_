@@ -83,7 +83,9 @@ function AttachForm({
   const attachMutation = useAttachProductVariant();
 
   const { data: countries } = useCountries();
-  const { data: cities } = useCities(form.country_id ? Number(form.country_id) : null);
+  const { data: cities } = useCities(
+    form.country_id ? Number(form.country_id) : null,
+  );
 
   const set = (field: keyof AttachFormState, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -102,13 +104,19 @@ function AttachForm({
     if (form.has_discount) {
       fd.append("discount_type", form.discount_type);
       fd.append("discount", form.discount);
-      if (form.discount_start_at) fd.append("discount_start_at", form.discount_start_at);
-      if (form.discount_end_at) fd.append("discount_end_at", form.discount_end_at);
+      if (form.discount_start_at)
+        fd.append("discount_start_at", form.discount_start_at);
+      if (form.discount_end_at)
+        fd.append("discount_end_at", form.discount_end_at);
     }
     if (form.city_id) fd.append("city_id", form.city_id);
 
     try {
-      await attachMutation.mutateAsync({ variantId: variant.id, data: fd, searchToken });
+      await attachMutation.mutateAsync({
+        variantId: variant.id,
+        data: fd,
+        searchToken,
+      });
       toast.success(t("attached_successfully") || "Attached successfully");
       onSuccess();
     } catch (err: any) {
@@ -122,7 +130,9 @@ function AttachForm({
       <div className="rounded-lg border bg-muted/30 p-3">
         <p className="text-sm font-medium">{variant.title || variant.slug}</p>
         {variant.oem_code && (
-          <p className="text-xs text-muted-foreground">OEM: {variant.oem_code}</p>
+          <p className="text-xs text-muted-foreground">
+            OEM: {variant.oem_code}
+          </p>
         )}
       </div>
 
@@ -168,7 +178,9 @@ function AttachForm({
           >
             <option value="">{t("select_country")}</option>
             {countries?.map((c) => (
-              <option key={c.id} value={c.id}>{c.title}</option>
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
             ))}
           </select>
         </div>
@@ -182,7 +194,9 @@ function AttachForm({
           >
             <option value="">{t("select_city")}</option>
             {cities?.map((c) => (
-              <option key={c.id} value={c.id}>{c.title}</option>
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
             ))}
           </select>
         </div>
@@ -213,7 +227,9 @@ function AttachForm({
                 onChange={(e) => set("discount_type", e.target.value)}
               >
                 <option value="by_percentage">{t("percentage") || "%"}</option>
-                <option value="by_amount">{t("fixed_amount") || "Fixed"}</option>
+                <option value="by_amount">
+                  {t("fixed_amount") || "Fixed"}
+                </option>
               </select>
             </div>
             <div className="space-y-1">
@@ -249,11 +265,18 @@ function AttachForm({
       )}
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={attachMutation.isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={attachMutation.isPending}
+        >
           {t("cancel")}
         </Button>
         <Button type="submit" disabled={attachMutation.isPending}>
-          {attachMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {attachMutation.isPending && (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          )}
           {t("attach")}
         </Button>
       </div>
@@ -280,14 +303,20 @@ function PricingModal({
     has_discount: item.discount > 0,
     discount_type: item.discount_type || "by_percentage",
     discount: item.discount?.toString() || "",
-    discount_start_at: item.discount_start_at ? item.discount_start_at.substring(0, 10) : "",
-    discount_end_at: item.discount_end_at ? item.discount_end_at.substring(0, 10) : "",
+    discount_start_at: item.discount_start_at
+      ? item.discount_start_at.substring(0, 10)
+      : "",
+    discount_end_at: item.discount_end_at
+      ? item.discount_end_at.substring(0, 10)
+      : "",
     country_id: item.city?.country_id?.toString() || "",
     city_id: item.city?.id?.toString() || "",
   });
 
   const { data: countries } = useCountries();
-  const { data: cities } = useCities(form.country_id ? Number(form.country_id) : null);
+  const { data: cities } = useCities(
+    form.country_id ? Number(form.country_id) : null,
+  );
 
   const set = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -303,14 +332,20 @@ function PricingModal({
       if (form.has_discount) {
         fd.append("discount_type", form.discount_type);
         fd.append("discount", form.discount);
-        if (form.discount_start_at) fd.append("discount_start_at", form.discount_start_at);
-        if (form.discount_end_at) fd.append("discount_end_at", form.discount_end_at);
+        if (form.discount_start_at)
+          fd.append("discount_start_at", form.discount_start_at);
+        if (form.discount_end_at)
+          fd.append("discount_end_at", form.discount_end_at);
       }
       if (form.city_id) fd.append("city_id", form.city_id);
 
-      await controlPrivateApi.post(`/company-product-variants/update/${item.id}`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await controlPrivateApi.post(
+        `/company-product-variants/update/${item.id}`,
+        fd,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
       toast.success(t("updated_successfully") || "Updated successfully");
       onSuccess();
     } catch (err: any) {
@@ -353,11 +388,16 @@ function PricingModal({
           <select
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={form.country_id}
-            onChange={(e) => { set("country_id", e.target.value); set("city_id", ""); }}
+            onChange={(e) => {
+              set("country_id", e.target.value);
+              set("city_id", "");
+            }}
           >
             <option value="">{t("select_country")}</option>
             {countries?.map((c) => (
-              <option key={c.id} value={c.id}>{c.title}</option>
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
             ))}
           </select>
         </div>
@@ -371,7 +411,9 @@ function PricingModal({
           >
             <option value="">{t("select_city")}</option>
             {cities?.map((c) => (
-              <option key={c.id} value={c.id}>{c.title}</option>
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
             ))}
           </select>
         </div>
@@ -385,7 +427,9 @@ function PricingModal({
           onChange={(e) => set("has_discount", e.target.checked)}
           className="h-4 w-4 rounded border-input"
         />
-        <Label htmlFor="p-has-discount" className="cursor-pointer">{t("has_discount")}</Label>
+        <Label htmlFor="p-has-discount" className="cursor-pointer">
+          {t("has_discount")}
+        </Label>
       </div>
 
       {form.has_discount && (
@@ -399,7 +443,9 @@ function PricingModal({
                 onChange={(e) => set("discount_type", e.target.value)}
               >
                 <option value="by_percentage">{t("percentage") || "%"}</option>
-                <option value="by_amount">{t("fixed_amount") || "Fixed"}</option>
+                <option value="by_amount">
+                  {t("fixed_amount") || "Fixed"}
+                </option>
               </select>
             </div>
             <div className="space-y-1">
@@ -416,18 +462,31 @@ function PricingModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>{t("discount_start_at")}</Label>
-              <Input type="date" value={form.discount_start_at} onChange={(e) => set("discount_start_at", e.target.value)} />
+              <Input
+                type="date"
+                value={form.discount_start_at}
+                onChange={(e) => set("discount_start_at", e.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label>{t("discount_end_at")}</Label>
-              <Input type="date" value={form.discount_end_at} onChange={(e) => set("discount_end_at", e.target.value)} />
+              <Input
+                type="date"
+                value={form.discount_end_at}
+                onChange={(e) => set("discount_end_at", e.target.value)}
+              />
             </div>
           </div>
         </div>
       )}
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={pending}
+        >
           {t("cancel")}
         </Button>
         <Button type="submit" disabled={pending}>
@@ -443,11 +502,9 @@ function PricingModal({
 
 function CatalogModal({
   productId,
-  onClose,
   onAttachSuccess,
 }: {
   productId: string;
-  onClose: () => void;
   onAttachSuccess: () => void;
 }) {
   const { t } = useTranslation();
@@ -455,7 +512,8 @@ function CatalogModal({
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<CatalogSearchItem[]>([]);
   const [searchToken, setSearchToken] = useState("");
-  const [selectedForAttach, setSelectedForAttach] = useState<CatalogSearchItem | null>(null);
+  const [selectedForAttach, setSelectedForAttach] =
+    useState<CatalogSearchItem | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -480,10 +538,15 @@ function CatalogModal({
 
     if (!search) {
       doFetch("");
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+      };
     }
     const timer = setTimeout(() => doFetch(search), 400);
-    return () => { cancelled = true; clearTimeout(timer); };
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, productId, refreshKey]);
 
@@ -529,14 +592,18 @@ function CatalogModal({
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : results.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">{t("no_data_found")}</p>
+        <p className="py-10 text-center text-sm text-muted-foreground">
+          {t("no_data_found")}
+        </p>
       ) : (
         <div className="max-h-[400px] space-y-2 overflow-y-auto pr-1">
           {results.map((item) => (
             <div
               key={item.id}
               className={`flex items-center gap-3 rounded-lg border p-3 ${
-                item.already_attached ? "bg-muted/40 opacity-70" : "bg-background"
+                item.already_attached
+                  ? "bg-muted/40 opacity-70"
+                  : "bg-background"
               }`}
             >
               {/* Image */}
@@ -556,7 +623,9 @@ function CatalogModal({
 
               {/* Info */}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{item.title || item.slug}</p>
+                <p className="truncate text-sm font-medium">
+                  {item.title || item.slug}
+                </p>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                   {item.oem_code && <span>OEM: {item.oem_code}</span>}
                   {item.brand_model && <span>{item.brand_model.title}</span>}
@@ -568,7 +637,8 @@ function CatalogModal({
                     {t("already_attached") || "Qoşulsunuz"}
                     {item.seller_listing && (
                       <span className="ml-1 text-muted-foreground">
-                        · {item.seller_listing.price_final} ₼ · {t("stock")}: {item.seller_listing.stock}
+                        · {item.seller_listing.price_final} ₼ · {t("stock")}:{" "}
+                        {item.seller_listing.stock}
                       </span>
                     )}
                   </div>
@@ -600,12 +670,19 @@ function CatalogModal({
 
 function ProductVariantsPage() {
   const { t } = useTranslation();
-  const { productId } = useParams({ from: "/_app/products/variants/$productId/" });
+  const { productId } = useParams({
+    from: "/_app/products/variants/$productId/",
+  });
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [list, setList] = useState<any[]>([]);
-  const [meta, setMeta] = useState({ total: 0, current_page: 1, per_page: 10, last_page: 1 });
+  const [meta, setMeta] = useState({
+    total: 0,
+    current_page: 1,
+    per_page: 10,
+    last_page: 1,
+  });
   const [loading, setLoading] = useState(false);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -635,9 +712,18 @@ function ProductVariantsPage() {
       if (params?.search ?? search) {
         queryParams.append("search", params?.search ?? search);
       }
-      const res = await controlPrivateApi.get(`/company-product-variants/load?${queryParams}`);
+      const res = await controlPrivateApi.get(
+        `/company-product-variants/load?${queryParams}`,
+      );
       setList(res.data.data || []);
-      setMeta(res.data.meta || { total: 0, current_page: 1, per_page: 10, last_page: 1 });
+      setMeta(
+        res.data.meta || {
+          total: 0,
+          current_page: 1,
+          per_page: 10,
+          last_page: 1,
+        },
+      );
     } catch {
       toast.error(t("error_loading_data"));
     } finally {
@@ -658,11 +744,16 @@ function ProductVariantsPage() {
 
   const toggleStatus = async (id: number, currentStatus: boolean) => {
     try {
-      await controlPrivateApi.post(`/company-product-variants/change-active-status/${id}`, {
-        is_active: !currentStatus,
-      });
+      await controlPrivateApi.post(
+        `/company-product-variants/change-active-status/${id}`,
+        {
+          is_active: !currentStatus,
+        },
+      );
       setList((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, is_active: !currentStatus } : item)),
+        prev.map((item) =>
+          item.id === id ? { ...item, is_active: !currentStatus } : item,
+        ),
       );
       toast.success(t("status_updated"));
     } catch {
@@ -679,7 +770,9 @@ function ProductVariantsPage() {
     if (!selectedVariant) return;
     setDeleteLoading(true);
     try {
-      await controlPrivateApi.delete(`/company-product-variants/detach/${selectedVariant.id}`);
+      await controlPrivateApi.delete(
+        `/company-product-variants/detach/${selectedVariant.id}`,
+      );
       toast.success(t("deleted_successfully"));
       setIsDeleteModalOpen(false);
       setSelectedVariant(null);
@@ -731,7 +824,8 @@ function ProductVariantsPage() {
     }
   };
 
-  const formatPrice = (price: number) => new Intl.NumberFormat("en-US").format(price);
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("en-US").format(price);
 
   const productTitle = list[0]?.variant?.product?.title;
 
@@ -746,7 +840,9 @@ function ProductVariantsPage() {
             </Button>
           </Link>
           <h1 className="text-2xl font-bold">
-            {productTitle ? `${productTitle} — ${t("variants")}` : t("variants")}
+            {productTitle
+              ? `${productTitle} — ${t("variants")}`
+              : t("variants")}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -802,11 +898,16 @@ function ProductVariantsPage() {
             ) : list.length > 0 ? (
               list.map((item, index) => (
                 <TableRow key={item.id}>
-                  <TableCell>{(page - 1) * meta.per_page + index + 1}</TableCell>
                   <TableCell>
-                    {item.variant?.main_image || item.seller_images?.[0]?.url ? (
+                    {(page - 1) * meta.per_page + index + 1}
+                  </TableCell>
+                  <TableCell>
+                    {item.variant?.main_image ||
+                    item.seller_images?.[0]?.url ? (
                       <img
-                        src={item.variant?.main_image || item.seller_images[0]?.url}
+                        src={
+                          item.variant?.main_image || item.seller_images[0]?.url
+                        }
                         alt={item.variant?.slug}
                         className="h-10 w-10 rounded object-cover"
                       />
@@ -818,18 +919,26 @@ function ProductVariantsPage() {
                     <div className="truncate font-medium">
                       {item.variant?.title || item.variant?.slug}
                     </div>
-                    <div className="text-xs text-muted-foreground">{item.variant?.slug}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {item.variant?.slug}
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {item.variant?.oem_code || "—"}
                   </TableCell>
-                  <TableCell className="text-sm">{item.city?.title || "—"}</TableCell>
+                  <TableCell className="text-sm">
+                    {item.city?.title || "—"}
+                  </TableCell>
                   <TableCell>
-                    <Badge variant={item.stock > 0 ? "default" : "destructive"}>{item.stock}</Badge>
+                    <Badge variant={item.stock > 0 ? "default" : "destructive"}>
+                      {item.stock}
+                    </Badge>
                   </TableCell>
                   <TableCell>{formatPrice(item.price)}</TableCell>
                   <TableCell>
-                    <span className="font-medium text-primary">{formatPrice(item.price_final)}</span>
+                    <span className="font-medium text-primary">
+                      {formatPrice(item.price_final)}
+                    </span>
                     {item.discount > 0 && (
                       <span className="ml-1 text-xs text-destructive">
                         -{item.discount}
@@ -853,7 +962,9 @@ function ProductVariantsPage() {
                   <TableCell>
                     <Switch
                       checked={item.is_active}
-                      onCheckedChange={() => toggleStatus(item.id, item.is_active)}
+                      onCheckedChange={() =>
+                        toggleStatus(item.id, item.is_active)
+                      }
                     />
                   </TableCell>
                   <TableCell>
@@ -880,7 +991,10 @@ function ProductVariantsPage() {
                         variant="ghost"
                         size="icon"
                         title={t("pricing") || "Qiymət / Stok"}
-                        onClick={() => { setSelectedPricingItem(item); setIsPricingModalOpen(true); }}
+                        onClick={() => {
+                          setSelectedPricingItem(item);
+                          setIsPricingModalOpen(true);
+                        }}
                       >
                         <DollarSign className="h-4 w-4 text-blue-500" />
                       </Button>
@@ -952,14 +1066,20 @@ function ProductVariantsPage() {
       {/* Pricing Modal */}
       <Modal
         isOpen={isPricingModalOpen}
-        onClose={() => { setIsPricingModalOpen(false); setSelectedPricingItem(null); }}
+        onClose={() => {
+          setIsPricingModalOpen(false);
+          setSelectedPricingItem(null);
+        }}
         title={t("pricing") || "Qiymət / Stok"}
         size="sm"
       >
         {selectedPricingItem && (
           <PricingModal
             item={selectedPricingItem}
-            onClose={() => { setIsPricingModalOpen(false); setSelectedPricingItem(null); }}
+            onClose={() => {
+              setIsPricingModalOpen(false);
+              setSelectedPricingItem(null);
+            }}
             onSuccess={() => {
               setIsPricingModalOpen(false);
               setSelectedPricingItem(null);
@@ -978,7 +1098,6 @@ function ProductVariantsPage() {
       >
         <CatalogModal
           productId={productId}
-          onClose={() => setIsCatalogModalOpen(false)}
           onAttachSuccess={() => fetchData()}
         />
       </Modal>
@@ -1009,7 +1128,9 @@ function ProductVariantsPage() {
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : historyList.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">{t("no_data_found")}</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {t("no_data_found")}
+          </p>
         ) : (
           <div className="rounded-md border">
             <Table>
@@ -1060,7 +1181,9 @@ function ProductVariantsPage() {
         size="sm"
       >
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">{t("resend_confirm_message")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("resend_confirm_message")}
+          </p>
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
@@ -1070,7 +1193,9 @@ function ProductVariantsPage() {
               {t("cancel")}
             </Button>
             <Button onClick={handleResendConfirm} disabled={resendLoading}>
-              {resendLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {resendLoading && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {t("resend")}
             </Button>
           </div>
