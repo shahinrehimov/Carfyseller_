@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_app/products/add/")({
   component: AddProductPage,
 });
 
-type AddStep = "search" | "form";
+type AddStep = "search" | "attach" | "form";
 
 function AddProductPage() {
   const { t } = useTranslation();
@@ -39,6 +39,54 @@ function AddProductPage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchToken, setSearchToken] = useState<string | null>(null);
   const [catalogResults, setCatalogResults] = useState<CatalogSearchItem[]>([]);
+  const [selectedVariantForAttach, setSelectedVariantForAttach] = useState<CatalogSearchItem | null>(null);
+
+  // Attach step state
+  const [attachImages, setAttachImages] = useState<any[]>([{}]);
+  const [attachPending, setAttachPending] = useState(false);
+
+  const attachSchema = Yup.object().shape({
+    price: Yup.string().required(t("required_field")),
+    stock: Yup.number().notRequired(),
+    city_id: Yup.number().notRequired(),
+    has_discount: Yup.boolean().notRequired(),
+    discount: Yup.string().when("has_discount", {
+      is: true,
+      then: (schema) => schema.required(t("required_field")),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    discount_type: Yup.string().when("has_discount", {
+      is: true,
+      then: (schema) => schema.required(t("required_field")),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    discount_start_at: Yup.date().when("has_discount", {
+      is: true,
+      then: (schema) => schema.required(t("required_field")),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    discount_end_at: Yup.date().when("has_discount", {
+      is: true,
+      then: (schema) => schema.required(t("required_field")),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+  });
+
+  const attachForm = useForm({
+    resolver: yupResolver(attachSchema),
+    defaultValues: {
+      price: "",
+      stock: "" as any,
+      city_id: undefined as number | undefined,
+      has_discount: false,
+      discount: "",
+      discount_type: "",
+      discount_start_at: undefined as Date | undefined,
+      discount_end_at: undefined as Date | undefined,
+    },
+  });
+
+  const hasDiscountAttach = attachForm.watch("has_discount");
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -53,6 +101,81 @@ function AddProductPage() {
       toast.error(t("error_loading_data"));
     } finally {
       setSearchLoading(false);
+    }
+  };
+
+  const handleAttachClick = (item: CatalogSearchItem) => {
+    setSelectedVariantForAttach(item);
+    attachForm.reset({
+      price: "",
+      stock: "" as any,
+      city_id: undefined,
+      has_discount: false,
+      discount: "",
+      discount_type: "",
+      discount_start_at: undefined,
+      discount_end_at: undefined,
+    });
+    setAttachImages([{}]);
+    setStep("attach");
+  };
+
+  const onSubmitAttach = async (data: any) => {
+    if (!searchToken || !selectedVariantForAttach) return;
+    if (attachPending) return;
+    setAttachPending(true);
+
+    try {
+      const formData = new FormData();
+
+      const basicFields: any = {
+        price: data.price,
+        stock: data.stock,
+        city_id: data.city_id || null,
+        has_discount: data.has_discount,
+      };
+
+      if (data.has_discount) {
+        basicFields.discount = data.discount || null;
+        basicFields.discount_type = data.discount_type || null;
+        basicFields.discount_start_at = data.discount_start_at
+          ? new Date(data.discount_start_at).toISOString().split("T")[0]
+          : null;
+        basicFields.discount_end_at = data.discount_end_at
+          ? new Date(data.discount_end_at).toISOString().split("T")[0]
+          : null;
+      }
+
+      Object.keys(basicFields).forEach((key) => {
+        if (basicFields[key] !== null && basicFields[key] !== undefined && basicFields[key] !== "") {
+          const value =
+            typeof basicFields[key] === "boolean"
+              ? basicFields[key] ? "1" : "0"
+              : basicFields[key];
+          formData.append(key, value);
+        }
+      });
+
+      attachImages.forEach((image: any, index: number) => {
+        if (image?.file) formData.append(`images[${index}]`, image.file);
+      });
+
+      const res = await controlPrivateApi.post(
+        `/company-product-variants/attach/${selectedVariantForAttach.id}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "X-Search-Token": searchToken,
+          },
+        }
+      );
+      toast.success(res.data.message || t("variant_attached_successfully"));
+      navigate({ to: "/products" });
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || t("error_saving"));
+    } finally {
+      setAttachPending(false);
     }
   };
 
@@ -716,12 +839,15 @@ function AddProductPage() {
                         {item.year && <span>{item.year}</span>}
                       </div>
                     </div>
-                    {!item.already_attached && (
-                      <Button variant="outline" size="sm" disabled>
-                        <Link2 className="mr-2 h-3 w-3" />
-                        {t("attach")}
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={item.already_attached}
+                      onClick={() => !item.already_attached && handleAttachClick(item)}
+                    >
+                      <Link2 className="mr-2 h-3 w-3" />
+                      {t("attach")}
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -741,7 +867,277 @@ function AddProductPage() {
     );
   }
 
-  // ── Step 2: Product form ──────────────────────────────────────────────────
+  // ── Step 2: Attach form ───────────────────────────────────────────────────
+  if (step === "attach" && selectedVariantForAttach) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setStep("search")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold">{t("attach_variant")}</h1>
+        </div>
+
+        {/* Selected variant info */}
+        <div className="rounded-lg border p-4 bg-muted/40 space-y-1">
+          <p className="text-sm font-medium">
+            {selectedVariantForAttach.product?.title || selectedVariantForAttach.slug}
+          </p>
+          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            {selectedVariantForAttach.oem_code && (
+              <span>OEM: {selectedVariantForAttach.oem_code}</span>
+            )}
+            {selectedVariantForAttach.brand_model && (
+              <span>{selectedVariantForAttach.brand_model.title}</span>
+            )}
+            {selectedVariantForAttach.year && <span>{selectedVariantForAttach.year}</span>}
+          </div>
+        </div>
+
+        <form onSubmit={attachForm.handleSubmit(onSubmitAttach)} className="space-y-6">
+          {/* Listing info */}
+          <div className="rounded-lg border p-6 space-y-4">
+            <h2 className="text-lg font-semibold">{t("listing_information")}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="attach-price">{t("price")} *</Label>
+                <Controller
+                  name="price"
+                  control={attachForm.control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      id="attach-price"
+                      type="number"
+                      step="0.01"
+                      className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  )}
+                />
+                {attachForm.formState.errors.price && (
+                  <p className="text-sm text-destructive">
+                    {attachForm.formState.errors.price.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="attach-stock">{t("stock")}</Label>
+                <Controller
+                  name="stock"
+                  control={attachForm.control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      id="attach-stock"
+                      type="number"
+                      className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="attach-city">{t("city")}</Label>
+                <Controller
+                  name="city_id"
+                  control={attachForm.control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value?.toString() || ""}
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      placeholder={t("select_city")}
+                      options={cities.map((city: any) => ({
+                        value: city.id.toString(),
+                        label: city.title,
+                      }))}
+                      disabled={loading}
+                    />
+                  )}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Discount */}
+          <div className="rounded-lg border p-6 space-y-4">
+            <h2 className="text-lg font-semibold">{t("discount_settings")}</h2>
+            <div className="flex items-center space-x-2">
+              <Controller
+                name="has_discount"
+                control={attachForm.control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="attach-has_discount"
+                    checked={!!field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+              <Label htmlFor="attach-has_discount">{t("has_discount")}</Label>
+            </div>
+
+            {hasDiscountAttach && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t("discount")} *</Label>
+                  <Controller
+                    name="discount"
+                    control={attachForm.control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        step="0.01"
+                        className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    )}
+                  />
+                  {attachForm.formState.errors.discount && (
+                    <p className="text-sm text-destructive">
+                      {attachForm.formState.errors.discount.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t("discount_type")} *</Label>
+                  <Controller
+                    name="discount_type"
+                    control={attachForm.control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value || ""}
+                        onValueChange={field.onChange}
+                        placeholder={t("select")}
+                        options={discountTypes.map((type: any) => ({
+                          value: type.id.toString(),
+                          label: type.title,
+                        }))}
+                        disabled={loading}
+                      />
+                    )}
+                  />
+                  {attachForm.formState.errors.discount_type && (
+                    <p className="text-sm text-destructive">
+                      {attachForm.formState.errors.discount_type.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t("discount_start_date")} *</Label>
+                  <Controller
+                    name="discount_start_at"
+                    control={attachForm.control}
+                    render={({ field }) => (
+                      <DatePickerInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder={t("discount_start_date")}
+                      />
+                    )}
+                  />
+                  {attachForm.formState.errors.discount_start_at && (
+                    <p className="text-sm text-destructive">
+                      {attachForm.formState.errors.discount_start_at.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t("discount_end_date")} *</Label>
+                  <Controller
+                    name="discount_end_at"
+                    control={attachForm.control}
+                    render={({ field }) => (
+                      <DatePickerInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder={t("discount_end_date")}
+                      />
+                    )}
+                  />
+                  {attachForm.formState.errors.discount_end_at && (
+                    <p className="text-sm text-destructive">
+                      {attachForm.formState.errors.discount_end_at.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Seller images */}
+          <div className="rounded-lg border p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">
+                {t("images")} ({t("optional")})
+              </h2>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAttachImages([...attachImages, {}])}
+              >
+                {t("add_image")}
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {attachImages.map((image, index) => (
+                <div key={index} className="relative rounded-lg border p-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium">
+                      {t("image")} {index + 1}
+                    </span>
+                    {attachImages.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() =>
+                          setAttachImages(attachImages.filter((_, i) => i !== index))
+                        }
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  <FileInput
+                    file={image}
+                    setFile={(newImage: any) => {
+                      const updated = [...attachImages];
+                      updated[index] = newImage;
+                      setAttachImages(updated);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setStep("search")}
+              disabled={attachPending}
+            >
+              {t("cancel")}
+            </Button>
+            <Button type="submit" size="lg" disabled={attachPending || loading}>
+              {attachPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("attach_variant")}
+            </Button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // ── Step 3: Product form ──────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Header */}
