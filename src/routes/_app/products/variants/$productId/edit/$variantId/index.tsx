@@ -193,11 +193,12 @@ function EditProductVariantPage() {
         const isCreatorVariant = cpvData?.variant?.is_creator ?? true;
 
         // Fetch pending revision if seller is the creator
-        let revisionData = null;
+        // revision = { id, status, data: {oem_code, brand_model_id, year, options}, images: {main_image, hover_image, images:[]} }
+        let revision: any = null;
         if (isCreatorVariant && pvId) {
           try {
             const revRes = await controlPrivateApi.get(`/product-variants/${pvId}/pending-revision`);
-            revisionData = revRes.data.data?.data ? revRes.data.data : null;
+            revision = revRes.data.data?.data || null;
           } catch {
             // ignore
           }
@@ -214,11 +215,11 @@ function EditProductVariantPage() {
 
         setCpv(cpvData);
         setIsCreator(isCreatorVariant);
-        setPendingRevision(revisionData);
+        setPendingRevision(revision);
 
-        // If pending revision exists, pre-populate form with revision data
-        const pv = revisionData ? { ...cpvData.variant, ...revisionData.data } : cpvData.variant;
-        const existingBrandId = cpvData.variant?.brand_model?.brand_id || cpvData.variant?.product?.brand?.id;
+        const pv = cpvData.variant;
+        // For brand pre-selection always use the current variant's brand
+        const existingBrandId = pv?.brand_model?.brand_id || pv?.product?.brand?.id;
 
         if (existingBrandId) {
           try {
@@ -229,11 +230,14 @@ function EditProductVariantPage() {
           }
         }
 
+        // Prefer revision's proposed values for canonical fields, fall back to current variant
+        const rd = revision?.data; // { oem_code, brand_model_id, year, options }
+
         const formValues: any = {
           main_image: {},
           hover_image: {},
           images: [{}],
-          // CPV fields
+          // CPV fields (always from CPV, not affected by revision)
           stock: cpvData.stock ?? 0,
           price: cpvData.price?.toString() || "",
           has_discount: cpvData.discount > 0,
@@ -246,11 +250,11 @@ function EditProductVariantPage() {
             ? new Date(cpvData.discount_end_at)
             : undefined,
           city_id: cpvData.city?.id || undefined,
-          // PV (canonical) fields
-          oem_code: pv?.oem_code || "",
+          // PV (canonical) fields — use revision's proposed values if pending revision exists
+          oem_code: rd?.oem_code ?? pv?.oem_code ?? "",
           brand_id: existingBrandId || undefined,
-          brand_model_id: pv?.brand_model?.id || undefined,
-          year: pv?.year || "",
+          brand_model_id: rd?.brand_model_id ?? pv?.brand_model?.id ?? undefined,
+          year: rd?.year ?? pv?.year ?? "",
           options:
             pv?.options?.map((opt: any) => ({
               option_id: opt.option.id,
@@ -269,12 +273,12 @@ function EditProductVariantPage() {
             })) || [],
         };
 
-        // Use revision images if available, otherwise use current variant images
-        const mainImgUrl = revisionData?.main_image || cpvData.variant?.main_image;
-        const hoverImgUrl = revisionData?.hover_image || cpvData.variant?.hover_image;
-        const extraImgs = revisionData?.images?.length
-          ? revisionData.images.map((i: any) => ({ file: "show", url: i.url }))
-          : cpvData.variant?.images?.urls?.map((url: string) => ({ file: "show", url })) || [];
+        // Use revision images if pending revision exists, otherwise current variant images
+        const mainImgUrl = revision?.images?.main_image || pv?.main_image;
+        const hoverImgUrl = revision?.images?.hover_image || pv?.hover_image;
+        const extraImgs = revision?.images?.images?.length
+          ? revision.images.images.map((i: any) => ({ file: "show", url: i.url }))
+          : pv?.images?.urls?.map((url: string) => ({ file: "show", url })) || [];
 
         if (mainImgUrl) {
           const img = { file: "show", url: mainImgUrl };
@@ -526,7 +530,7 @@ function EditProductVariantPage() {
       </div>
 
       {/* Pending revision banner */}
-      {isCreator && pendingRevision && (
+      {isCreator && pendingRevision?.status === "pending" && (
         <div className="flex items-center gap-3 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-yellow-800">
           <Clock className="h-5 w-5 shrink-0" />
           <p className="text-sm font-medium">
