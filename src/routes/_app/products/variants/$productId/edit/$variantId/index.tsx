@@ -355,17 +355,20 @@ function EditProductVariantPage() {
     try {
       const formData = new FormData();
 
-      const basicFields: any = {
-        has_discount: data.has_discount,
-        oem_code: data.oem_code || null,
-        year: data.year || null,
-        brand_model_id: data.brand_model_id || null,
-        city_id: data.city_id || null,
-        stock: data.stock,
-        price: data.price || null,
-      };
+      const basicFields: any = isCreator
+        ? {
+            oem_code: data.oem_code || null,
+            year: data.year || null,
+            brand_model_id: data.brand_model_id || null,
+          }
+        : {
+            has_discount: data.has_discount,
+            city_id: data.city_id || null,
+            stock: data.stock,
+            price: data.price || null,
+          };
 
-      if (data.has_discount) {
+      if (!isCreator && data.has_discount) {
         basicFields.discount = data.discount || null;
         basicFields.discount_type = data.discount_type || null;
         basicFields.discount_start_at = data.discount_start_at
@@ -550,8 +553,8 @@ function EditProductVariantPage() {
           <h2 className="text-lg font-semibold">{t("basic_information")}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Stock */}
-            <div className="space-y-2">
+            {/* Stock — only for non-creator */}
+            {!isCreator && <div className="space-y-2">
               <Label htmlFor="stock">{t("stock")}</Label>
               <Controller
                 name="stock"
@@ -566,10 +569,10 @@ function EditProductVariantPage() {
                   />
                 )}
               />
-            </div>
+            </div>}
 
-            {/* Price */}
-            <div className="space-y-2">
+            {/* Price — only for non-creator */}
+            {!isCreator && <div className="space-y-2">
               <Label htmlFor="price">{t("price")}</Label>
               <Controller
                 name="price"
@@ -585,7 +588,7 @@ function EditProductVariantPage() {
                   />
                 )}
               />
-            </div>
+            </div>}
 
             {/* Brand — only for creator */}
             {isCreator && <div className="space-y-2">
@@ -670,8 +673,8 @@ function EditProductVariantPage() {
               )}
             </div>}
 
-            {/* City */}
-            <div className="space-y-2">
+            {/* City — only for non-creator */}
+            {!isCreator && <div className="space-y-2">
               <Label htmlFor="city_id">{t("city")}</Label>
               <Controller
                 name="city_id"
@@ -692,12 +695,12 @@ function EditProductVariantPage() {
               {errors.city_id && (
                 <p className="text-sm text-destructive">{errors.city_id.message}</p>
               )}
-            </div>
+            </div>}
           </div>
         </div>
 
-        {/* Discount Settings */}
-        <div className="rounded-lg border p-6 space-y-4">
+        {/* Discount Settings — only for non-creator */}
+        {!isCreator && <div className="rounded-lg border p-6 space-y-4">
           <h2 className="text-lg font-semibold">{t("discount_settings")}</h2>
 
           <div className="flex items-center space-x-2">
@@ -795,7 +798,7 @@ function EditProductVariantPage() {
               </div>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Product Options — only for creator */}
         {isCreator && <div className="rounded-lg border p-6 space-y-4">

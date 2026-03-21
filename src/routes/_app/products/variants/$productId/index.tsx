@@ -28,6 +28,7 @@ import {
   Link2,
   Image as ImageIcon,
   CheckCircle,
+  DollarSign,
 } from "lucide-react";
 import Modal from "@/components/ui/modal";
 import DeleteModal from "@/components/ui/delete-modal";
@@ -260,6 +261,184 @@ function AttachForm({
   );
 }
 
+// ─── Pricing Modal ────────────────────────────────────────────────────────────
+
+function PricingModal({
+  item,
+  onClose,
+  onSuccess,
+}: {
+  item: any;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const { t } = useTranslation();
+  const [pending, setPending] = useState(false);
+  const [form, setForm] = useState({
+    price: item.price?.toString() || "",
+    stock: item.stock?.toString() || "",
+    has_discount: item.discount > 0,
+    discount_type: item.discount_type || "by_percentage",
+    discount: item.discount?.toString() || "",
+    discount_start_at: item.discount_start_at ? item.discount_start_at.substring(0, 10) : "",
+    discount_end_at: item.discount_end_at ? item.discount_end_at.substring(0, 10) : "",
+    country_id: item.city?.country_id?.toString() || "",
+    city_id: item.city?.id?.toString() || "",
+  });
+
+  const { data: countries } = useCountries();
+  const { data: cities } = useCities(form.country_id ? Number(form.country_id) : null);
+
+  const set = (field: string, value: string | boolean) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPending(true);
+    try {
+      const fd = new FormData();
+      fd.append("price", form.price);
+      fd.append("stock", form.stock || "0");
+      fd.append("has_discount", form.has_discount ? "1" : "0");
+      if (form.has_discount) {
+        fd.append("discount_type", form.discount_type);
+        fd.append("discount", form.discount);
+        if (form.discount_start_at) fd.append("discount_start_at", form.discount_start_at);
+        if (form.discount_end_at) fd.append("discount_end_at", form.discount_end_at);
+      }
+      if (form.city_id) fd.append("city_id", form.city_id);
+
+      await controlPrivateApi.post(`/company-product-variants/update/${item.id}`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success(t("updated_successfully") || "Updated successfully");
+      onSuccess();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t("error_occurred"));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="p-price">{t("price")} *</Label>
+          <Input
+            id="p-price"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.price}
+            onChange={(e) => set("price", e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="p-stock">{t("stock")}</Label>
+          <Input
+            id="p-stock"
+            type="number"
+            min="0"
+            value={form.stock}
+            onChange={(e) => set("stock", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label>{t("country")}</Label>
+          <select
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={form.country_id}
+            onChange={(e) => { set("country_id", e.target.value); set("city_id", ""); }}
+          >
+            <option value="">{t("select_country")}</option>
+            {countries?.map((c) => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label>{t("city")}</Label>
+          <select
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={form.city_id}
+            onChange={(e) => set("city_id", e.target.value)}
+            disabled={!form.country_id}
+          >
+            <option value="">{t("select_city")}</option>
+            {cities?.map((c) => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="p-has-discount"
+          checked={form.has_discount}
+          onChange={(e) => set("has_discount", e.target.checked)}
+          className="h-4 w-4 rounded border-input"
+        />
+        <Label htmlFor="p-has-discount" className="cursor-pointer">{t("has_discount")}</Label>
+      </div>
+
+      {form.has_discount && (
+        <div className="space-y-3 rounded-lg border p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>{t("discount_type")}</Label>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.discount_type}
+                onChange={(e) => set("discount_type", e.target.value)}
+              >
+                <option value="by_percentage">{t("percentage") || "%"}</option>
+                <option value="by_fixed">{t("fixed_amount") || "Fixed"}</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>{t("discount")}</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.discount}
+                onChange={(e) => set("discount", e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>{t("discount_start_at")}</Label>
+              <Input type="date" value={form.discount_start_at} onChange={(e) => set("discount_start_at", e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>{t("discount_end_at")}</Label>
+              <Input type="date" value={form.discount_end_at} onChange={(e) => set("discount_end_at", e.target.value)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+          {t("cancel")}
+        </Button>
+        <Button type="submit" disabled={pending}>
+          {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {t("save")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 // ─── Catalog Modal ────────────────────────────────────────────────────────────
 
 function CatalogModal({
@@ -443,6 +622,8 @@ function ProductVariantsPage() {
   const [resendLoading, setResendLoading] = useState(false);
 
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [selectedPricingItem, setSelectedPricingItem] = useState<any>(null);
 
   const fetchData = async (params?: { page?: number; search?: string }) => {
     setLoading(true);
@@ -685,14 +866,24 @@ function ProductVariantsPage() {
                           <Eye className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <Link
-                        to="/products/variants/$productId/edit/$variantId"
-                        params={{ productId, variantId: String(item.id) }}
+                      {item.variant?.is_creator && (
+                        <Link
+                          to="/products/variants/$productId/edit/$variantId"
+                          params={{ productId, variantId: String(item.id) }}
+                        >
+                          <Button variant="ghost" size="icon" title={t("edit")}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={t("pricing") || "Qiymət / Stok"}
+                        onClick={() => { setSelectedPricingItem(item); setIsPricingModalOpen(true); }}
                       >
-                        <Button variant="ghost" size="icon">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </Link>
+                        <DollarSign className="h-4 w-4 text-blue-500" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -757,6 +948,26 @@ function ProductVariantsPage() {
           </Button>
         </div>
       )}
+
+      {/* Pricing Modal */}
+      <Modal
+        isOpen={isPricingModalOpen}
+        onClose={() => { setIsPricingModalOpen(false); setSelectedPricingItem(null); }}
+        title={t("pricing") || "Qiymət / Stok"}
+        size="sm"
+      >
+        {selectedPricingItem && (
+          <PricingModal
+            item={selectedPricingItem}
+            onClose={() => { setIsPricingModalOpen(false); setSelectedPricingItem(null); }}
+            onSuccess={() => {
+              setIsPricingModalOpen(false);
+              setSelectedPricingItem(null);
+              fetchData();
+            }}
+          />
+        )}
+      </Modal>
 
       {/* Catalog Modal */}
       <Modal
