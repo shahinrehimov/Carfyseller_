@@ -199,7 +199,7 @@ function EditProductVariantPage() {
         setIsCreator(cpvData.variant?.is_creator ?? true);
 
         const pv = cpvData.variant;
-        const existingBrandId = pv?.product?.brand?.id || pv?.brand?.id;
+        const existingBrandId = pv?.brand_model?.brand_id || pv?.product?.brand?.id;
 
         if (existingBrandId) {
           try {
