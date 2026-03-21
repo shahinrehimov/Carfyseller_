@@ -13,6 +13,7 @@ import { useTheme } from "@/components/themes/provider";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { Link } from "@tanstack/react-router";
 import LocationPickerModal from "@/components/ui/location-picker-modal";
+import { useCountries, useCities } from "@/lib/queries/countries";
 
 const registerPageSchema = z.object({
   redirect: z.string().optional(),
@@ -31,6 +32,7 @@ const RegisterFormSchema = z
     company_email: z.string().email("Invalid email format"),
     latitude: z.number(),
     longitude: z.number(),
+    city_id: z.number({ required_error: "City is required" }).min(1, "City is required"),
     website: z.string().url("Invalid website URL").optional().or(z.literal("")),
 
     // Company translations (main language)
@@ -71,6 +73,10 @@ function RouteComponent() {
     lat: 40.4093,
     lng: 49.8671,
   });
+  const [selectedCountryId, setSelectedCountryId] = useState<number | null>(null);
+
+  const { data: countries = [] } = useCountries();
+  const { data: cities = [] } = useCities(selectedCountryId);
 
   const form = useForm<RegisterFormSchema>({
     resolver: zodResolver(RegisterFormSchema),
@@ -100,6 +106,7 @@ function RouteComponent() {
           email: formData.company_email,
           latitude: formData.latitude,
           longitude: formData.longitude,
+          city_id: formData.city_id,
           website: formData.website || null,
           translations: [
             {
@@ -274,6 +281,51 @@ function RouteComponent() {
                     {form.formState.errors.company_address && (
                       <p className="mt-1 text-sm text-red-500">
                         {form.formState.errors.company_address.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Country */}
+                  <div>
+                    <select
+                      className={`w-full rounded-md border ${
+                        isDark
+                          ? "border-gray-600 bg-gray-800 text-white"
+                          : "border-gray-300 bg-white text-black"
+                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      value={selectedCountryId ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        setSelectedCountryId(val);
+                        form.setValue("city_id", undefined as unknown as number);
+                      }}
+                    >
+                      <option value="">{t("select_country")}</option>
+                      {countries.map((c) => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* City */}
+                  <div>
+                    <select
+                      className={`w-full rounded-md border ${
+                        isDark
+                          ? "border-gray-600 bg-gray-800 text-white"
+                          : "border-gray-300 bg-white text-black"
+                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50`}
+                      disabled={!selectedCountryId}
+                      {...form.register("city_id", { valueAsNumber: true })}
+                    >
+                      <option value="">{t("select_city")}</option>
+                      {cities.map((c) => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                    </select>
+                    {form.formState.errors.city_id && (
+                      <p className="mt-1 text-sm text-red-500">
+                        {form.formState.errors.city_id.message}
                       </p>
                     )}
                   </div>
