@@ -93,6 +93,7 @@ function EditProductVariantPage() {
   });
 
   const [cpv, setCpv] = useState<any>(null);
+  const [isCreator, setIsCreator] = useState(true);
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
@@ -195,6 +196,7 @@ function EditProductVariantPage() {
 
         const cpvData = cpvRes.data.data;
         setCpv(cpvData);
+        setIsCreator(cpvData.variant?.is_creator ?? true);
 
         const pv = cpvData.variant;
         const existingBrandId = pv?.product?.brand?.id || pv?.brand?.id;
@@ -429,12 +431,21 @@ function EditProductVariantPage() {
         });
       }
 
-      const pvId = cpv?.variant?.id;
-      const res = await controlPrivateApi.post(
-        `/product-variants/update/${pvId}`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+      let res;
+      if (isCreator) {
+        const pvId = cpv?.variant?.id;
+        res = await controlPrivateApi.post(
+          `/product-variants/update/${pvId}`,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+      } else {
+        res = await controlPrivateApi.post(
+          `/company-product-variants/update/${variantId}`,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+      }
       toast.success(res.data.message || t("variant_updated_successfully"));
       navigate({ to: `/products/variants/${productId}` });
     } catch (error: any) {
@@ -475,8 +486,8 @@ function EditProductVariantPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Images Section */}
-        <div className="rounded-lg border p-6 space-y-4">
+        {/* Images Section — only for creator */}
+        {isCreator && <div className="rounded-lg border p-6 space-y-4">
           <h2 className="text-lg font-semibold">{t("images")}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -532,7 +543,7 @@ function EditProductVariantPage() {
               ))}
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* Basic Information */}
         <div className="rounded-lg border p-6 space-y-4">
@@ -576,8 +587,8 @@ function EditProductVariantPage() {
               />
             </div>
 
-            {/* Brand */}
-            <div className="space-y-2">
+            {/* Brand — only for creator */}
+            {isCreator && <div className="space-y-2">
               <Label htmlFor="brand_id">{t("brand")}</Label>
               <Controller
                 name="brand_id"
@@ -595,10 +606,10 @@ function EditProductVariantPage() {
                   />
                 )}
               />
-            </div>
+            </div>}
 
-            {/* Brand Model */}
-            <div className="space-y-2">
+            {/* Brand Model — only for creator */}
+            {isCreator && <div className="space-y-2">
               <Label htmlFor="brand_model_id">{t("brand_model")}</Label>
               <Controller
                 name="brand_model_id"
@@ -616,10 +627,10 @@ function EditProductVariantPage() {
                   />
                 )}
               />
-            </div>
+            </div>}
 
-            {/* OEM Code */}
-            <div className="space-y-2">
+            {/* OEM Code — only for creator */}
+            {isCreator && <div className="space-y-2">
               <Label htmlFor="oem_code">{t("oem_code")}</Label>
               <Controller
                 name="oem_code"
@@ -633,10 +644,10 @@ function EditProductVariantPage() {
                   />
                 )}
               />
-            </div>
+            </div>}
 
-            {/* Year */}
-            <div className="space-y-2">
+            {/* Year — only for creator */}
+            {isCreator && <div className="space-y-2">
               <Label htmlFor="year">{t("year")}</Label>
               <Controller
                 name="year"
@@ -657,7 +668,7 @@ function EditProductVariantPage() {
               {errors.year && (
                 <p className="text-sm text-destructive">{errors.year.message}</p>
               )}
-            </div>
+            </div>}
 
             {/* City */}
             <div className="space-y-2">
@@ -786,8 +797,8 @@ function EditProductVariantPage() {
           )}
         </div>
 
-        {/* Product Options */}
-        <div className="rounded-lg border p-6 space-y-4">
+        {/* Product Options — only for creator */}
+        {isCreator && <div className="rounded-lg border p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">{t("product_options")}</h2>
             {getAvailableOptions().length > 0 && (
@@ -912,7 +923,7 @@ function EditProductVariantPage() {
               })}
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Submit */}
         <Button type="submit" disabled={pending || loading} size="lg">

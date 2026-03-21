@@ -68,6 +68,7 @@ export interface Product {
   discount_start_at: string | null;
   discount_end_at: string | null;
   is_active: boolean;
+  is_creator: boolean;
   created_user: string;
   created_date: string;
 }
@@ -181,6 +182,7 @@ export interface CompanyProductVariant {
     main_image: string | null;
     hover_image: string | null;
     is_set: boolean;
+    is_creator: boolean;
     brand_model: { id: number; title: string } | null;
     year: number | null;
     product: {

@@ -172,23 +172,27 @@ function ProductsPage() {
                           <Eye className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <Link to="/products/edit/$productId" params={{ productId: String(product.id) }}>
-                        <Button variant="ghost" size="icon">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </Link>
+                      {product.is_creator && (
+                        <Link to="/products/edit/$productId" params={{ productId: String(product.id) }}>
+                          <Button variant="ghost" size="icon">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      )}
                       <Link to="/products/variants/$productId" params={{ productId: String(product.id) }}>
                         <Button variant="ghost" size="icon" title={t("variants")}>
                           <Layers className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteClick(product)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {product.is_creator && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteClick(product)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
