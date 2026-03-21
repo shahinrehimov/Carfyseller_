@@ -567,7 +567,7 @@ function AddProductVariantPage() {
                   <div key={item.id} className="flex items-center justify-between p-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{item.product?.title || item.slug}</span>
+                        <span className="font-medium">{item.title || item.slug}</span>
                         {item.already_attached && (
                           <Badge variant="secondary">{t("already_attached")}</Badge>
                         )}
