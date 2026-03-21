@@ -1,6 +1,9 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
+import { searchCatalog, useAttachProductVariant } from "@/lib/queries/products";
+import type { CatalogSearchItem } from "@/lib/queries/products";
+import { useCountries, useCities } from "@/lib/queries/countries";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -11,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Loader2,
   Search,
@@ -21,6 +25,9 @@ import {
   ArrowLeft,
   History,
   RefreshCw,
+  Link2,
+  Image as ImageIcon,
+  CheckCircle,
 } from "lucide-react";
 import Modal from "@/components/ui/modal";
 import DeleteModal from "@/components/ui/delete-modal";
@@ -32,6 +39,382 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_app/products/variants/$productId/")({
   component: ProductVariantsPage,
 });
+
+// ─── Attach Form ──────────────────────────────────────────────────────────────
+
+interface AttachFormState {
+  price: string;
+  stock: string;
+  has_discount: boolean;
+  discount_type: string;
+  discount: string;
+  discount_start_at: string;
+  discount_end_at: string;
+  country_id: string;
+  city_id: string;
+}
+
+const defaultAttachForm: AttachFormState = {
+  price: "",
+  stock: "",
+  has_discount: false,
+  discount_type: "by_percentage",
+  discount: "",
+  discount_start_at: "",
+  discount_end_at: "",
+  country_id: "",
+  city_id: "",
+};
+
+function AttachForm({
+  variant,
+  onCancel,
+  onSuccess,
+}: {
+  variant: CatalogSearchItem;
+  onCancel: () => void;
+  onSuccess: () => void;
+}) {
+  const { t } = useTranslation();
+  const [form, setForm] = useState<AttachFormState>(defaultAttachForm);
+  const attachMutation = useAttachProductVariant();
+
+  const { data: countries } = useCountries();
+  const { data: cities } = useCities(form.country_id ? Number(form.country_id) : null);
+
+  const set = (field: keyof AttachFormState, value: string | boolean) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.price) {
+      toast.error(t("price_required") || "Price is required");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("price", form.price);
+    fd.append("stock", form.stock || "0");
+    fd.append("has_discount", form.has_discount ? "1" : "0");
+    if (form.has_discount) {
+      fd.append("discount_type", form.discount_type);
+      fd.append("discount", form.discount);
+      if (form.discount_start_at) fd.append("discount_start_at", form.discount_start_at);
+      if (form.discount_end_at) fd.append("discount_end_at", form.discount_end_at);
+    }
+    if (form.city_id) fd.append("city_id", form.city_id);
+
+    try {
+      await attachMutation.mutateAsync({ variantId: variant.id, data: fd });
+      toast.success(t("attached_successfully") || "Attached successfully");
+      onSuccess();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t("error_occurred"));
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Variant info */}
+      <div className="rounded-lg border bg-muted/30 p-3">
+        <p className="text-sm font-medium">{variant.title || variant.slug}</p>
+        {variant.oem_code && (
+          <p className="text-xs text-muted-foreground">OEM: {variant.oem_code}</p>
+        )}
+      </div>
+
+      {/* Price & Stock */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="attach-price">{t("price")} *</Label>
+          <Input
+            id="attach-price"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            value={form.price}
+            onChange={(e) => set("price", e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="attach-stock">{t("stock")}</Label>
+          <Input
+            id="attach-stock"
+            type="number"
+            min="0"
+            placeholder="0"
+            value={form.stock}
+            onChange={(e) => set("stock", e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Country / City */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label>{t("country")}</Label>
+          <select
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={form.country_id}
+            onChange={(e) => {
+              set("country_id", e.target.value);
+              set("city_id", "");
+            }}
+          >
+            <option value="">{t("select_country")}</option>
+            {countries?.map((c) => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label>{t("city")}</Label>
+          <select
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={form.city_id}
+            onChange={(e) => set("city_id", e.target.value)}
+            disabled={!form.country_id}
+          >
+            <option value="">{t("select_city")}</option>
+            {cities?.map((c) => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Has Discount */}
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="attach-has-discount"
+          checked={form.has_discount}
+          onChange={(e) => set("has_discount", e.target.checked)}
+          className="h-4 w-4 rounded border-input"
+        />
+        <Label htmlFor="attach-has-discount" className="cursor-pointer">
+          {t("has_discount")}
+        </Label>
+      </div>
+
+      {form.has_discount && (
+        <div className="space-y-3 rounded-lg border p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>{t("discount_type")}</Label>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.discount_type}
+                onChange={(e) => set("discount_type", e.target.value)}
+              >
+                <option value="by_percentage">{t("percentage") || "%"}</option>
+                <option value="by_fixed">{t("fixed_amount") || "Fixed"}</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>{t("discount")}</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.discount}
+                onChange={(e) => set("discount", e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>{t("discount_start_at")}</Label>
+              <Input
+                type="date"
+                value={form.discount_start_at}
+                onChange={(e) => set("discount_start_at", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>{t("discount_end_at")}</Label>
+              <Input
+                type="date"
+                value={form.discount_end_at}
+                onChange={(e) => set("discount_end_at", e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={attachMutation.isPending}>
+          {t("cancel")}
+        </Button>
+        <Button type="submit" disabled={attachMutation.isPending}>
+          {attachMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {t("attach")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+// ─── Catalog Modal ────────────────────────────────────────────────────────────
+
+function CatalogModal({
+  productId,
+  onClose,
+  onAttachSuccess,
+}: {
+  productId: string;
+  onClose: () => void;
+  onAttachSuccess: () => void;
+}) {
+  const { t } = useTranslation();
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<CatalogSearchItem[]>([]);
+  const [selectedForAttach, setSelectedForAttach] = useState<CatalogSearchItem | null>(null);
+
+  const fetchCatalog = useCallback(
+    async (searchValue: string) => {
+      setLoading(true);
+      try {
+        const res = await searchCatalog({
+          product_id: Number(productId),
+          search: searchValue || undefined,
+        });
+        setResults(res.data);
+      } catch {
+        toast.error(t("error_loading_data"));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [productId, t],
+  );
+
+  useEffect(() => {
+    fetchCatalog("");
+  }, [fetchCatalog]);
+
+  useEffect(() => {
+    if (!search) {
+      fetchCatalog("");
+      return;
+    }
+    const timer = setTimeout(() => fetchCatalog(search), 400);
+    return () => clearTimeout(timer);
+  }, [search, fetchCatalog]);
+
+  if (selectedForAttach) {
+    return (
+      <div>
+        <button
+          className="mb-4 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          onClick={() => setSelectedForAttach(null)}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t("back")}
+        </button>
+        <AttachForm
+          variant={selectedForAttach}
+          onCancel={() => setSelectedForAttach(null)}
+          onSuccess={() => {
+            setSelectedForAttach(null);
+            fetchCatalog(search);
+            onAttachSuccess();
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder={t("search")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+          autoFocus
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : results.length === 0 ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">{t("no_data_found")}</p>
+      ) : (
+        <div className="max-h-[400px] space-y-2 overflow-y-auto pr-1">
+          {results.map((item) => (
+            <div
+              key={item.id}
+              className={`flex items-center gap-3 rounded-lg border p-3 ${
+                item.already_attached ? "bg-muted/40 opacity-70" : "bg-background"
+              }`}
+            >
+              {/* Image */}
+              <div className="shrink-0">
+                {item.main_image ? (
+                  <img
+                    src={item.main_image}
+                    alt={item.slug}
+                    className="h-12 w-12 rounded object-cover"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded bg-muted">
+                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+
+              {/* Info */}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{item.title || item.slug}</p>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                  {item.oem_code && <span>OEM: {item.oem_code}</span>}
+                  {item.brand_model && <span>{item.brand_model.title}</span>}
+                  {item.year && <span>{item.year}</span>}
+                </div>
+                {item.already_attached && (
+                  <div className="mt-1 flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                    <CheckCircle className="h-3 w-3" />
+                    {t("already_attached") || "Qoşulsunuz"}
+                    {item.seller_listing && (
+                      <span className="ml-1 text-muted-foreground">
+                        · {item.seller_listing.price_final} ₼ · {t("stock")}: {item.seller_listing.stock}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Action */}
+              <div className="shrink-0">
+                {item.already_attached ? (
+                  <Badge variant="outline" className="text-xs">
+                    {t("attached") || "Qoşulub"}
+                  </Badge>
+                ) : (
+                  <Button size="sm" onClick={() => setSelectedForAttach(item)}>
+                    <Link2 className="mr-1.5 h-3.5 w-3.5" />
+                    {t("attach") || "Qoşul"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 function ProductVariantsPage() {
   const { t } = useTranslation();
@@ -55,6 +438,8 @@ function ProductVariantsPage() {
   const [isResendConfirmOpen, setIsResendConfirmOpen] = useState(false);
   const [resendVariant, setResendVariant] = useState<any>(null);
   const [resendLoading, setResendLoading] = useState(false);
+
+  const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
 
   const fetchData = async (params?: { page?: number; search?: string }) => {
     setLoading(true);
@@ -93,9 +478,7 @@ function ProductVariantsPage() {
         is_active: !currentStatus,
       });
       setList((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, is_active: !currentStatus } : item
-        )
+        prev.map((item) => (item.id === id ? { ...item, is_active: !currentStatus } : item)),
       );
       toast.success(t("status_updated"));
     } catch {
@@ -131,7 +514,7 @@ function ProductVariantsPage() {
     setHistoryLoading(true);
     try {
       const res = await controlPrivateApi.get(
-        `/company-product-variants/${variant.id}/approval-status/history`
+        `/company-product-variants/${variant.id}/approval-status/history`,
       );
       setHistoryList(res.data.data || []);
     } catch {
@@ -151,7 +534,7 @@ function ProductVariantsPage() {
     setResendLoading(true);
     try {
       await controlPrivateApi.post(
-        `/company-product-variants/${resendVariant.id}/approval-status/resend`
+        `/company-product-variants/${resendVariant.id}/approval-status/resend`,
       );
       toast.success(t("resend_success"));
       setIsResendConfirmOpen(false);
@@ -164,8 +547,7 @@ function ProductVariantsPage() {
     }
   };
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("en-US").format(price);
+  const formatPrice = (price: number) => new Intl.NumberFormat("en-US").format(price);
 
   const productTitle = list[0]?.variant?.product?.title;
 
@@ -180,28 +562,32 @@ function ProductVariantsPage() {
             </Button>
           </Link>
           <h1 className="text-2xl font-bold">
-            {productTitle ? `${productTitle} - ${t("variants")}` : t("variants")}
+            {productTitle ? `${productTitle} — ${t("variants")}` : t("variants")}
           </h1>
         </div>
-        <Link to="/products/variants/$productId/add" params={{ productId }}>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("add")}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsCatalogModalOpen(true)}>
+            <Link2 className="mr-2 h-4 w-4" />
+            {t("attach_other_variants") || "Digər variantlara qoşul"}
           </Button>
-        </Link>
+          <Link to="/products/variants/$productId/add" params={{ productId }}>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("add")}
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Search */}
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={t("search")}
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder={t("search")}
+          value={search}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {/* Table */}
@@ -245,29 +631,25 @@ function ProductVariantsPage() {
                     )}
                   </TableCell>
                   <TableCell className="max-w-[160px]">
-                    <div className="truncate font-medium">{item.variant?.title || item.variant?.slug}</div>
+                    <div className="truncate font-medium">
+                      {item.variant?.title || item.variant?.slug}
+                    </div>
                     <div className="text-xs text-muted-foreground">{item.variant?.slug}</div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {item.variant?.oem_code || "—"}
                   </TableCell>
-                  <TableCell className="text-sm">
-                    {item.city?.title || "—"}
-                  </TableCell>
+                  <TableCell className="text-sm">{item.city?.title || "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={item.stock > 0 ? "default" : "destructive"}>
-                      {item.stock}
-                    </Badge>
+                    <Badge variant={item.stock > 0 ? "default" : "destructive"}>{item.stock}</Badge>
                   </TableCell>
                   <TableCell>{formatPrice(item.price)}</TableCell>
                   <TableCell>
-                    <span className="font-medium text-primary">
-                      {formatPrice(item.price_final)}
-                    </span>
+                    <span className="font-medium text-primary">{formatPrice(item.price_final)}</span>
                     {item.discount > 0 && (
                       <span className="ml-1 text-xs text-destructive">
                         -{item.discount}
-                        {item.discount_type === "by_percentage" ? "%" : "$"}
+                        {item.discount_type === "by_percentage" ? "%" : "₼"}
                       </span>
                     )}
                   </TableCell>
@@ -277,8 +659,8 @@ function ProductVariantsPage() {
                         item.approval_status === "approved"
                           ? "default"
                           : item.approval_status === "rejected"
-                          ? "destructive"
-                          : "secondary"
+                            ? "destructive"
+                            : "secondary"
                       }
                     >
                       {item.approval_status_label ?? item.approval_status}
@@ -292,12 +674,18 @@ function ProductVariantsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-1">
-                      <Link to="/products/variants/$productId/show/$variantId" params={{ productId, variantId: String(item.id) }}>
+                      <Link
+                        to="/products/variants/$productId/show/$variantId"
+                        params={{ productId, variantId: String(item.id) }}
+                      >
                         <Button variant="ghost" size="icon">
                           <Eye className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <Link to="/products/variants/$productId/edit/$variantId" params={{ productId, variantId: String(item.id) }}>
+                      <Link
+                        to="/products/variants/$productId/edit/$variantId"
+                        params={{ productId, variantId: String(item.id) }}
+                      >
                         <Button variant="ghost" size="icon">
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -367,6 +755,20 @@ function ProductVariantsPage() {
         </div>
       )}
 
+      {/* Catalog Modal */}
+      <Modal
+        isOpen={isCatalogModalOpen}
+        onClose={() => setIsCatalogModalOpen(false)}
+        title={t("attach_other_variants") || "Digər variantlara qoşul"}
+        size="lg"
+      >
+        <CatalogModal
+          productId={productId}
+          onClose={() => setIsCatalogModalOpen(false)}
+          onAttachSuccess={() => fetchData()}
+        />
+      </Modal>
+
       {/* Delete Modal */}
       <Modal
         isOpen={isDeleteModalOpen}
@@ -393,9 +795,7 @@ function ProductVariantsPage() {
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : historyList.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">
-            {t("no_data_found")}
-          </p>
+          <p className="py-8 text-center text-sm text-muted-foreground">{t("no_data_found")}</p>
         ) : (
           <div className="rounded-md border">
             <Table>
@@ -418,8 +818,8 @@ function ProductVariantsPage() {
                           h.approval_status === "approved"
                             ? "default"
                             : h.approval_status === "rejected"
-                            ? "destructive"
-                            : "secondary"
+                              ? "destructive"
+                              : "secondary"
                         }
                       >
                         {h.approval_status_label ?? h.approval_status}
@@ -446,9 +846,7 @@ function ProductVariantsPage() {
         size="sm"
       >
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {t("resend_confirm_message")}
-          </p>
+          <p className="text-sm text-muted-foreground">{t("resend_confirm_message")}</p>
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"

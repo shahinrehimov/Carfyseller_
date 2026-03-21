@@ -115,10 +115,12 @@ export interface CatalogSearchItem {
   id: number;
   uuid: string;
   slug: string;
+  title: string;
   oem_code: string | null;
   year: number | null;
   brand_model: { id: number; title: string } | null;
   options: Array<any>;
+  is_creator: boolean;
   already_attached: boolean;
   seller_listing: {
     id: number;
@@ -533,6 +535,23 @@ export function useToggleCompanyProductVariantStatus() {
   return useMutation({
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
       toggleCompanyProductVariantStatus(id, isActive),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companyProductVariants"] });
+    },
+  });
+}
+
+export function useAttachProductVariant() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ variantId, data }: { variantId: number; data: FormData }) => {
+      const response = await controlPrivateApi.post(
+        `/company-product-variants/attach/${variantId}`,
+        data,
+      );
+      return response.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companyProductVariants"] });
     },
