@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Upload, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Loader2, Upload, X } from "lucide-react";
 import { useTranslationStore } from "@/store/translations";
 import { FileInput } from "@/components/ui/file-input";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -115,6 +115,7 @@ function EditProductPage() {
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("0");
+  const [pendingRevision, setPendingRevision] = useState<any>(null);
 
   // Image states
   const [mainImage, setMainImage] = useState<any>({});
@@ -199,6 +200,7 @@ function EditProductPage() {
           brandsRes,
           categoriesRes,
           discountTypesRes,
+          revisionRes,
         ] = await Promise.all([
           controlPrivateApi.get(`/products/show/${productId}`),
           controlPrivateApi.get("/brands/list").catch(() => ({ data: { data: [] } })),
@@ -208,7 +210,13 @@ function EditProductPage() {
           controlPrivateApi
             .get("/discount-types/list")
             .catch(() => ({ data: { data: [] } })),
+          controlPrivateApi
+            .get(`/products/${productId}/pending-revision`)
+            .catch(() => ({ data: { data: null } })),
         ]);
+
+        const revision = revisionRes.data.data;
+        setPendingRevision(revision);
 
         const productData = productRes.data.data;
 
@@ -503,8 +511,13 @@ function EditProductPage() {
         }
       );
 
-      toast.success(res.data.message || t("product_updated_successfully"));
-      navigate({ to: "/products" });
+      if (res.data.data?.pending_revision) {
+        toast.success(res.data.data.message || t("revision_pending_approval"));
+        setPendingRevision({ status: "pending" });
+      } else {
+        toast.success(res.data.message || t("product_updated_successfully"));
+        navigate({ to: "/products" });
+      }
     } catch (error: any) {
       toast.error(
         error?.response?.data?.message || t("failed_to_update_product")
@@ -533,6 +546,16 @@ function EditProductPage() {
         </Link>
         <h1 className="text-2xl font-bold">{t("edit_product")}</h1>
       </div>
+
+      {/* Pending revision banner */}
+      {pendingRevision?.status === "pending" && (
+        <div className="flex items-start gap-3 rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+          <p className="text-sm">
+            {t("pending_revision_notice") || "Dəyişiklikləriniz admin təsdiqi gözləyir. Yenidən göndərərsinizsə, əvvəlki gözləyən dəyişiklik silinəcək."}
+          </p>
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
