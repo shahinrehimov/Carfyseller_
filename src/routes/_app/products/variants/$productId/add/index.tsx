@@ -619,7 +619,7 @@ function AddProductVariantPage() {
         </div>
 
         <div className="rounded-lg border p-4 bg-muted/40 space-y-1">
-          <p className="text-sm font-medium">{selectedVariantForAttach.product?.title || selectedVariantForAttach.slug}</p>
+          <p className="text-sm font-medium">{selectedVariantForAttach.title || selectedVariantForAttach.slug}</p>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
             {selectedVariantForAttach.oem_code && (
               <span>OEM: {selectedVariantForAttach.oem_code}</span>
