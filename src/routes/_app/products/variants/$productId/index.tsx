@@ -68,10 +68,12 @@ const defaultAttachForm: AttachFormState = {
 
 function AttachForm({
   variant,
+  searchToken,
   onCancel,
   onSuccess,
 }: {
   variant: CatalogSearchItem;
+  searchToken: string;
   onCancel: () => void;
   onSuccess: () => void;
 }) {
@@ -105,7 +107,7 @@ function AttachForm({
     if (form.city_id) fd.append("city_id", form.city_id);
 
     try {
-      await attachMutation.mutateAsync({ variantId: variant.id, data: fd });
+      await attachMutation.mutateAsync({ variantId: variant.id, data: fd, searchToken });
       toast.success(t("attached_successfully") || "Attached successfully");
       onSuccess();
     } catch (err: any) {
@@ -273,6 +275,7 @@ function CatalogModal({
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<CatalogSearchItem[]>([]);
+  const [searchToken, setSearchToken] = useState("");
   const [selectedForAttach, setSelectedForAttach] = useState<CatalogSearchItem | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -285,7 +288,10 @@ function CatalogModal({
           product_id: Number(productId),
           search: searchValue || undefined,
         });
-        if (!cancelled) setResults(res.data);
+        if (!cancelled) {
+          setResults(res.data);
+          setSearchToken(res.search_token);
+        }
       } catch {
         if (!cancelled) toast.error(t("error_loading_data"));
       } finally {
@@ -314,6 +320,7 @@ function CatalogModal({
         </button>
         <AttachForm
           variant={selectedForAttach}
+          searchToken={searchToken}
           onCancel={() => setSelectedForAttach(null)}
           onSuccess={() => {
             setSelectedForAttach(null);

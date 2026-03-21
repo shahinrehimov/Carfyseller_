@@ -547,10 +547,11 @@ export function useAttachProductVariant() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ variantId, data }: { variantId: number; data: FormData }) => {
+    mutationFn: async ({ variantId, data, searchToken }: { variantId: number; data: FormData; searchToken: string }) => {
       const response = await controlPrivateApi.post(
         `/company-product-variants/attach/${variantId}`,
         data,
+        { headers: { 'X-Search-Token': searchToken } },
       );
       return response.data;
     },
