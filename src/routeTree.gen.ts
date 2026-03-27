@@ -17,6 +17,7 @@ import { Route as AuthSigninRouteImport } from './routes/auth/signin'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
 import { Route as AuthRegisterRouteImport } from './routes/auth/register'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
+import { Route as AppReviewsIndexRouteImport } from './routes/_app/reviews/index'
 import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index'
 import { Route as AppProductsIndexRouteImport } from './routes/_app/products/index'
 import { Route as AppProductsAddIndexRouteImport } from './routes/_app/products/add/index'
@@ -65,6 +66,11 @@ const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
   getParentRoute: () => AuthRoute,
+} as any)
+const AppReviewsIndexRoute = AppReviewsIndexRouteImport.update({
+  id: '/reviews/',
+  path: '/reviews/',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppProfileIndexRoute = AppProfileIndexRouteImport.update({
   id: '/profile/',
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/auth/signin': typeof AuthSigninRoute
   '/products/': typeof AppProductsIndexRoute
   '/profile/': typeof AppProfileIndexRoute
+  '/reviews/': typeof AppReviewsIndexRoute
   '/products/$productId/': typeof AppProductsProductIdIndexRoute
   '/products/add/': typeof AppProductsAddIndexRoute
   '/products/edit/$productId/': typeof AppProductsEditProductIdIndexRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/products': typeof AppProductsIndexRoute
   '/profile': typeof AppProfileIndexRoute
+  '/reviews': typeof AppReviewsIndexRoute
   '/products/$productId': typeof AppProductsProductIdIndexRoute
   '/products/add': typeof AppProductsAddIndexRoute
   '/products/edit/$productId': typeof AppProductsEditProductIdIndexRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/products/': typeof AppProductsIndexRoute
   '/_app/profile/': typeof AppProfileIndexRoute
+  '/_app/reviews/': typeof AppReviewsIndexRoute
   '/_app/products/$productId/': typeof AppProductsProductIdIndexRoute
   '/_app/products/add/': typeof AppProductsAddIndexRoute
   '/_app/products/edit/$productId/': typeof AppProductsEditProductIdIndexRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/auth/signin'
     | '/products/'
     | '/profile/'
+    | '/reviews/'
     | '/products/$productId/'
     | '/products/add/'
     | '/products/edit/$productId/'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/'
     | '/products'
     | '/profile'
+    | '/reviews'
     | '/products/$productId'
     | '/products/add'
     | '/products/edit/$productId'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/products/'
     | '/_app/profile/'
+    | '/_app/reviews/'
     | '/_app/products/$productId/'
     | '/_app/products/add/'
     | '/_app/products/edit/$productId/'
@@ -296,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthForgotPasswordRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_app/reviews/': {
+      id: '/_app/reviews/'
+      path: '/reviews'
+      fullPath: '/reviews/'
+      preLoaderRoute: typeof AppReviewsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/profile/': {
       id: '/_app/profile/'
       path: '/profile'
@@ -366,6 +385,7 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppProductsIndexRoute: typeof AppProductsIndexRoute
   AppProfileIndexRoute: typeof AppProfileIndexRoute
+  AppReviewsIndexRoute: typeof AppReviewsIndexRoute
   AppProductsProductIdIndexRoute: typeof AppProductsProductIdIndexRoute
   AppProductsAddIndexRoute: typeof AppProductsAddIndexRoute
   AppProductsEditProductIdIndexRoute: typeof AppProductsEditProductIdIndexRoute
@@ -379,6 +399,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppProductsIndexRoute: AppProductsIndexRoute,
   AppProfileIndexRoute: AppProfileIndexRoute,
+  AppReviewsIndexRoute: AppReviewsIndexRoute,
   AppProductsProductIdIndexRoute: AppProductsProductIdIndexRoute,
   AppProductsAddIndexRoute: AppProductsAddIndexRoute,
   AppProductsEditProductIdIndexRoute: AppProductsEditProductIdIndexRoute,

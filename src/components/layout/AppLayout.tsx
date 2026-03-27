@@ -1,6 +1,6 @@
 import { Outlet } from "@tanstack/react-router";
 import { useState } from "react";
-import { LayoutDashboard, Package } from "lucide-react";
+import { LayoutDashboard, Package, Star } from "lucide-react";
 import { useMediaQuery } from "@uidotdev/usehooks";
 import { Sidebar, SidebarItem } from "../ui/sidebar";
 import { Header } from "../ui/header";
@@ -19,6 +19,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const sidebarItems = [
     { icon: <LayoutDashboard />, label: t("dashboard"), href: "/" },
     { icon: <Package />, label: t("products"), href: "/products" },
+    { icon: <Star />, label: t("reviews"), href: "/reviews" },
   ];
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(isMobileView);
 
