@@ -6,9 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import Settings from "./-components/Settings";
 import ChangePassword from "./-components/ChangePassword";
+import ActiveSessions from "./-components/ActiveSessions";
 
 const profilePageSearchParamsSchema = z.object({
-  tab: z.enum(["settings", "security"]).default("settings"),
+  tab: z.enum(["settings", "security", "active-sessions"]).default("settings"),
 });
 type profilePageSearchParamsSchema = z.infer<
   typeof profilePageSearchParamsSchema
@@ -38,12 +39,16 @@ function RouteComponent() {
         <TabsList className="w-full">
           <TabsTrigger value="settings">{t("settings")}</TabsTrigger>
           <TabsTrigger value="security">{t("security")}</TabsTrigger>
+          <TabsTrigger value="active-sessions">{t("active_sessions")}</TabsTrigger>
         </TabsList>
         <TabsContent value="settings">
           <Settings />
         </TabsContent>
         <TabsContent value="security">
           <ChangePassword />
+        </TabsContent>
+        <TabsContent value="active-sessions">
+          <ActiveSessions />
         </TabsContent>
       </Tabs>
     </div>
