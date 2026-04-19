@@ -1,9 +1,695 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  ShoppingCart,
+  DollarSign,
+  Package,
+  Eye,
+  ShoppingBag,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DatePicker } from "@/components/ui/date-picker";
+import {
+  useOrdersStatistics,
+  useTopSelling,
+  useTopViewed,
+  useCustomerBehavior,
+  type OrderPeriod,
+} from "@/lib/queries/statistics";
+import { useTranslation } from "@/lib/utils/translationLoader";
 
 export const Route = createFileRoute("/_app/")({
-  component: () => (
-    <>
-      <h1>Hello</h1>
-    </>
-  ),
+  component: DashboardPage,
 });
+
+// ─── Colour palette ───────────────────────────────────────────────────────────
+
+const COLORS = {
+  primary: "#6366f1",
+  secondary: "#22d3ee",
+  accent: "#f59e0b",
+  danger: "#ef4444",
+  success: "#10b981",
+  muted: "#94a3b8",
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatAZN(value: number) {
+  return `${value.toLocaleString("az-AZ", { maximumFractionDigits: 2 })} ₼`;
+}
+
+function formatDate(date: string, period: OrderPeriod) {
+  if (period === "monthly") return date;
+  try {
+    return new Date(date).toLocaleDateString("az-AZ", {
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return date;
+  }
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  color: string;
+  loading?: boolean;
+  sub?: string;
+}
+
+function StatCard({ title, value, icon, color, loading, sub }: StatCardProps) {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-4 p-5">
+        <div
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+          style={{ backgroundColor: `${color}18`, color }}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-muted-foreground truncate text-sm">{title}</p>
+          {loading ? (
+            <div className="bg-muted mt-1 h-6 w-24 animate-pulse rounded" />
+          ) : (
+            <p className="truncate text-2xl font-bold">{value}</p>
+          )}
+          {sub && !loading && (
+            <p className="text-muted-foreground truncate text-xs">{sub}</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Period selector ──────────────────────────────────────────────────────────
+
+const PERIOD_VALUES: OrderPeriod[] = ["daily", "monthly"];
+
+interface PeriodTabsProps {
+  value: OrderPeriod;
+  onChange: (v: OrderPeriod) => void;
+}
+
+function PeriodTabs({ value, onChange }: PeriodTabsProps) {
+  const { t } = useTranslation();
+
+  const labels: Record<OrderPeriod, string> = {
+    daily: t("daily"),
+    monthly: t("monthly"),
+  };
+
+  return (
+    <div className="bg-muted flex rounded-lg p-1 text-sm">
+      {PERIOD_VALUES.map((p) => (
+        <button
+          key={p}
+          onClick={() => onChange(p)}
+          className={
+            value === p
+              ? "bg-background rounded-md px-3 py-1 font-medium shadow-sm transition-all"
+              : "text-muted-foreground rounded-md px-3 py-1 transition-all hover:text-foreground"
+          }
+        >
+          {labels[p]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+function ChartSkeleton({ height = 280 }: { height?: number }) {
+  return (
+    <div className="bg-muted animate-pulse rounded-lg" style={{ height }} />
+  );
+}
+
+// ─── Conversion rate bar ──────────────────────────────────────────────────────
+
+interface RateBarProps {
+  label: string;
+  rate: number;
+  color: string;
+}
+
+function RateBar({ label, rate, color }: RateBarProps) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-semibold">{rate.toFixed(1)}%</span>
+      </div>
+      <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${Math.min(rate, 100)}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Main dashboard ───────────────────────────────────────────────────────────
+
+function DashboardPage() {
+  const { t } = useTranslation();
+
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const [dateFrom, setDateFrom] = useState(monthAgo);
+  const [dateTo, setDateTo] = useState(today);
+  const [period, setPeriod] = useState<OrderPeriod>("daily");
+
+  const sharedFilters = { date_from: dateFrom, date_to: dateTo };
+
+  const { data: ordersData, isLoading: ordersLoading } = useOrdersStatistics({
+    ...sharedFilters,
+    period,
+  });
+  const { data: topSelling, isLoading: topSellingLoading } = useTopSelling({
+    ...sharedFilters,
+    limit: 10,
+  });
+  const { data: topViewed, isLoading: topViewedLoading } = useTopViewed({
+    ...sharedFilters,
+    limit: 10,
+  });
+  const { data: behavior, isLoading: behaviorLoading } = useCustomerBehavior({
+    ...sharedFilters,
+    abandoned_limit: 10,
+  });
+
+  const orderChart = (ordersData?.chart ?? []).map((p) => ({
+    ...p,
+    date: formatDate(p.date, period),
+  }));
+
+  const labelOrderCount = t("order_count");
+  const labelRevenue = t("revenue_azn");
+  const labelNoData = t("no_data_found");
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* ── Header ── */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{t("dashboard")}</h1>
+          <p className="text-muted-foreground text-sm">
+            {t("platform_general_statistics")}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <DatePicker
+              value={dateFrom}
+              onChange={(v) => v && setDateFrom(v)}
+              placeholder={t("date_from")}
+              className="w-38"
+            />
+            <span className="text-muted-foreground select-none">—</span>
+            <DatePicker
+              value={dateTo}
+              onChange={(v) => v && setDateTo(v)}
+              placeholder={t("date_to")}
+              className="w-38"
+            />
+          </div>
+          <PeriodTabs value={period} onChange={setPeriod} />
+        </div>
+      </div>
+
+      {/* ── KPI cards ── */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard
+          title={t("total_orders")}
+          value={ordersData?.summary.total_orders ?? "—"}
+          icon={<ShoppingCart size={22} />}
+          color={COLORS.primary}
+          loading={ordersLoading}
+        />
+        <StatCard
+          title={t("total_revenue")}
+          value={
+            ordersData ? formatAZN(ordersData.summary.total_revenue) : "—"
+          }
+          icon={<DollarSign size={22} />}
+          color={COLORS.success}
+          loading={ordersLoading}
+        />
+        <StatCard
+          title={t("quantity_sold")}
+          value={ordersData?.summary.total_quantity ?? "—"}
+          icon={<Package size={22} />}
+          color={COLORS.accent}
+          loading={ordersLoading}
+        />
+        <StatCard
+          title={t("total_views")}
+          value={behavior?.overview.total_views.toLocaleString() ?? "—"}
+          icon={<Eye size={22} />}
+          color={COLORS.secondary}
+          loading={behaviorLoading}
+        />
+        <StatCard
+          title={t("basket_adds")}
+          value={behavior?.overview.total_basket_adds.toLocaleString() ?? "—"}
+          icon={<ShoppingBag size={22} />}
+          color={COLORS.primary}
+          loading={behaviorLoading}
+        />
+        <StatCard
+          title={t("view_to_order_rate")}
+          value={
+            behavior ? `${behavior.overview.view_to_order_rate.toFixed(1)}%` : "—"
+          }
+          icon={<TrendingUp size={22} />}
+          color={COLORS.success}
+          loading={behaviorLoading}
+        />
+      </div>
+
+      {/* ── Orders chart ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp size={18} className="text-indigo-500" />
+            {t("order_dynamics")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ordersLoading ? (
+            <ChartSkeleton />
+          ) : orderChart.length === 0 ? (
+            <div className="text-muted-foreground flex h-[280px] items-center justify-center text-sm">
+              {labelNoData}
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart
+                data={orderChart}
+                margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor={COLORS.success}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={COLORS.success}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                  <linearGradient id="gradOrders" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor={COLORS.primary}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={COLORS.primary}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                />
+                <YAxis
+                  yAxisId="left"
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                  tickFormatter={(v) => `${v}₼`}
+                />
+                <Tooltip
+                  formatter={(value, name) => {
+                    if (name === labelRevenue)
+                      return [formatAZN(Number(value)), name];
+                    return [value, name];
+                  }}
+                />
+                <Legend />
+                <Area
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="order_count"
+                  name={labelOrderCount}
+                  stroke={COLORS.primary}
+                  fill="url(#gradOrders)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Area
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="revenue"
+                  name={labelRevenue}
+                  stroke={COLORS.success}
+                  fill="url(#gradRevenue)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Top selling + Top viewed ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Top selling */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp size={18} className="text-emerald-500" />
+              {t("top_selling_products")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {topSellingLoading ? (
+              <div className="p-6">
+                <ChartSkeleton height={200} />
+              </div>
+            ) : (
+              <div className="divide-border divide-y">
+                {(topSelling ?? []).map((item, i) => (
+                  <div
+                    key={item.cpv.id}
+                    className="hover:bg-muted/30 flex items-center gap-3 px-5 py-3 transition-colors"
+                  >
+                    <span className="text-muted-foreground w-5 shrink-0 text-center text-sm font-semibold">
+                      {i + 1}
+                    </span>
+                    {item.cpv.main_image ? (
+                      <img
+                        src={item.cpv.main_image}
+                        alt=""
+                        className="h-9 w-9 shrink-0 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="bg-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
+                        <Package size={16} className="text-muted-foreground" />
+                      </div>
+                    )}
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium">
+                      {item.cpv.title}
+                    </p>
+                    <div className="shrink-0 text-right text-xs">
+                      <p className="font-semibold text-emerald-600">
+                        {formatAZN(item.revenue)}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {item.quantity_sold} {t("pcs")}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {(topSelling ?? []).length === 0 && (
+                  <p className="text-muted-foreground p-5 text-center text-sm">
+                    {labelNoData}
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top viewed */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye size={18} className="text-cyan-500" />
+              {t("top_viewed_products")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {topViewedLoading ? (
+              <div className="p-6">
+                <ChartSkeleton height={200} />
+              </div>
+            ) : (
+              <div className="divide-border divide-y">
+                {(topViewed ?? []).map((item, i) => (
+                  <div
+                    key={item.cpv.id}
+                    className="hover:bg-muted/30 flex items-center gap-3 px-5 py-3 transition-colors"
+                  >
+                    <span className="text-muted-foreground w-5 shrink-0 text-center text-sm font-semibold">
+                      {i + 1}
+                    </span>
+                    {item.cpv.main_image ? (
+                      <img
+                        src={item.cpv.main_image}
+                        alt=""
+                        className="h-9 w-9 shrink-0 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="bg-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
+                        <Package size={16} className="text-muted-foreground" />
+                      </div>
+                    )}
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium">
+                      {item.cpv.title}
+                    </p>
+                    <div className="shrink-0 text-right text-xs">
+                      <p className="font-semibold text-indigo-600">
+                        {item.view_count.toLocaleString()}
+                      </p>
+                      <p className="text-muted-foreground">{t("views")}</p>
+                    </div>
+                  </div>
+                ))}
+                {(topViewed ?? []).length === 0 && (
+                  <p className="text-muted-foreground p-5 text-center text-sm">
+                    {labelNoData}
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Customer behaviour ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Conversion rates */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingDown size={18} className="text-violet-500" />
+              {t("customer_behavior")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {behaviorLoading ? (
+              <ChartSkeleton height={160} />
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    {
+                      label: t("total_views"),
+                      value: behavior?.overview.total_views.toLocaleString(),
+                      color: COLORS.secondary,
+                    },
+                    {
+                      label: t("basket_adds"),
+                      value: behavior?.overview.total_basket_adds.toLocaleString(),
+                      color: COLORS.accent,
+                    },
+                    {
+                      label: t("converted_baskets"),
+                      value: behavior?.overview.converted_baskets.toLocaleString(),
+                      color: COLORS.success,
+                    },
+                  ].map(({ label, value, color }) => (
+                    <div
+                      key={label}
+                      className="rounded-lg border p-3 text-center"
+                    >
+                      <p
+                        className="text-xl font-bold"
+                        style={{ color }}
+                      >
+                        {value ?? "—"}
+                      </p>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        {label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <RateBar
+                    label={t("view_to_basket_rate")}
+                    rate={behavior?.overview.view_to_basket_rate ?? 0}
+                    color={COLORS.secondary}
+                  />
+                  <RateBar
+                    label={t("basket_to_order_rate")}
+                    rate={behavior?.overview.basket_to_order_rate ?? 0}
+                    color={COLORS.accent}
+                  />
+                  <RateBar
+                    label={t("view_to_order_rate")}
+                    rate={behavior?.overview.view_to_order_rate ?? 0}
+                    color={COLORS.success}
+                  />
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Abandoned products */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-amber-500" />
+              {t("abandoned_products")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {behaviorLoading ? (
+              <div className="p-6">
+                <ChartSkeleton height={200} />
+              </div>
+            ) : (behavior?.abandoned_products ?? []).length > 0 ? (
+              <>
+                <div className="divide-border divide-y">
+                  {(behavior?.abandoned_products ?? [])
+                    .slice(0, 6)
+                    .map((item) => (
+                      <div
+                        key={item.cpv.id}
+                        className="hover:bg-muted/30 flex items-center gap-3 px-5 py-3 transition-colors"
+                      >
+                        {item.cpv.main_image ? (
+                          <img
+                            src={item.cpv.main_image}
+                            alt=""
+                            className="h-9 w-9 shrink-0 rounded-md object-cover"
+                          />
+                        ) : (
+                          <div className="bg-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
+                            <Package
+                              size={16}
+                              className="text-muted-foreground"
+                            />
+                          </div>
+                        )}
+                        <p className="min-w-0 flex-1 truncate text-sm font-medium">
+                          {item.cpv.title}
+                        </p>
+                        <div className="shrink-0 text-right text-xs">
+                          <p className="font-semibold text-amber-600">
+                            {item.abandonment_rate.toFixed(0)}%
+                          </p>
+                          <p className="text-muted-foreground">
+                            {item.abandoned_count} {t("abandoned")}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                {/* Mini bar chart for top 5 abandoned */}
+                {(behavior?.abandoned_products ?? []).length > 0 && (
+                  <div className="p-4">
+                    <ResponsiveContainer width="100%" height={140}>
+                      <BarChart
+                        data={(behavior?.abandoned_products ?? [])
+                          .slice(0, 5)
+                          .map((item) => ({
+                            name:
+                              item.cpv.title.length > 20
+                                ? `${item.cpv.title.slice(0, 20)}…`
+                                : item.cpv.title,
+                            rate: Number(item.abandonment_rate.toFixed(1)),
+                          }))}
+                        layout="vertical"
+                        margin={{ top: 0, right: 8, left: 8, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          horizontal={false}
+                          stroke="#e2e8f0"
+                        />
+                        <XAxis
+                          type="number"
+                          tick={{ fontSize: 11 }}
+                          tickLine={false}
+                          tickFormatter={(v) => `${v}%`}
+                          domain={[0, 100]}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          tick={{ fontSize: 10 }}
+                          tickLine={false}
+                          width={130}
+                        />
+                        <Tooltip
+                          formatter={(v) => [`${v}%`, t("abandonment_rate")]}
+                        />
+                        <Bar
+                          dataKey="rate"
+                          fill={COLORS.accent}
+                          radius={[0, 4, 4, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-muted-foreground p-5 text-center text-sm">
+                {labelNoData}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
