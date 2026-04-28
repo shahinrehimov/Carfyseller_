@@ -1,6 +1,6 @@
 import { Outlet } from "@tanstack/react-router";
 import { useState } from "react";
-import { LayoutDashboard, Package, Star, LifeBuoy, Store, ShoppingCart } from "lucide-react";
+import { Bell, LayoutDashboard, Package, Star, LifeBuoy, Store, ShoppingCart } from "lucide-react";
 import { useMediaQuery } from "@uidotdev/usehooks";
 import { Sidebar, SidebarItem } from "../ui/sidebar";
 import { Header } from "../ui/header";
@@ -22,6 +22,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: <Package />, label: t("products"), href: "/products" },
     { icon: <ShoppingCart />, label: t("orders", "Sifarişlər"), href: "/orders" },
     { icon: <Star />, label: t("reviews"), href: "/reviews" },
+    { icon: <Bell />, label: t("push_notifications", "Bildirişlər"), href: "/push-notifications" },
     { icon: <LifeBuoy />, label: t("support"), href: "/support" },
   ];
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(isMobileView);
