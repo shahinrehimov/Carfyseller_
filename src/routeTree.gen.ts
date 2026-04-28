@@ -22,12 +22,14 @@ import { Route as AppStoreIndexRouteImport } from './routes/_app/store/index'
 import { Route as AppReviewsIndexRouteImport } from './routes/_app/reviews/index'
 import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index'
 import { Route as AppProductsIndexRouteImport } from './routes/_app/products/index'
+import { Route as AppOrdersIndexRouteImport } from './routes/_app/orders/index'
 import { Route as AppSupportAddIndexRouteImport } from './routes/_app/support/add/index'
 import { Route as AppProductsAddIndexRouteImport } from './routes/_app/products/add/index'
 import { Route as AppProductsProductIdIndexRouteImport } from './routes/_app/products/$productId/index'
 import { Route as AppSupportShowTicketIdIndexRouteImport } from './routes/_app/support/show/$ticketId/index'
 import { Route as AppProductsVariantsProductIdIndexRouteImport } from './routes/_app/products/variants/$productId/index'
 import { Route as AppProductsEditProductIdIndexRouteImport } from './routes/_app/products/edit/$productId/index'
+import { Route as AppOrdersShowOrderUuidIndexRouteImport } from './routes/_app/orders/show/$orderUuid/index'
 import { Route as AppProductsVariantsProductIdAddIndexRouteImport } from './routes/_app/products/variants/$productId/add/index'
 import { Route as AppProductsVariantsProductIdShowVariantIdIndexRouteImport } from './routes/_app/products/variants/$productId/show/$variantId/index'
 import { Route as AppProductsVariantsProductIdEditVariantIdIndexRouteImport } from './routes/_app/products/variants/$productId/edit/$variantId/index'
@@ -96,6 +98,11 @@ const AppProductsIndexRoute = AppProductsIndexRouteImport.update({
   path: '/products/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOrdersIndexRoute = AppOrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSupportAddIndexRoute = AppSupportAddIndexRouteImport.update({
   id: '/support/add/',
   path: '/support/add/',
@@ -130,6 +137,12 @@ const AppProductsEditProductIdIndexRoute =
     path: '/products/edit/$productId/',
     getParentRoute: () => AppRoute,
   } as any)
+const AppOrdersShowOrderUuidIndexRoute =
+  AppOrdersShowOrderUuidIndexRouteImport.update({
+    id: '/orders/show/$orderUuid/',
+    path: '/orders/show/$orderUuid/',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProductsVariantsProductIdAddIndexRoute =
   AppProductsVariantsProductIdAddIndexRouteImport.update({
     id: '/products/variants/$productId/add/',
@@ -157,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/auth/register': typeof AuthRegisterRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/orders/': typeof AppOrdersIndexRoute
   '/products/': typeof AppProductsIndexRoute
   '/profile/': typeof AppProfileIndexRoute
   '/reviews/': typeof AppReviewsIndexRoute
@@ -165,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/products/$productId/': typeof AppProductsProductIdIndexRoute
   '/products/add/': typeof AppProductsAddIndexRoute
   '/support/add/': typeof AppSupportAddIndexRoute
+  '/orders/show/$orderUuid/': typeof AppOrdersShowOrderUuidIndexRoute
   '/products/edit/$productId/': typeof AppProductsEditProductIdIndexRoute
   '/products/variants/$productId/': typeof AppProductsVariantsProductIdIndexRoute
   '/support/show/$ticketId/': typeof AppSupportShowTicketIdIndexRoute
@@ -180,6 +195,7 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/signin': typeof AuthSigninRoute
   '/': typeof AppIndexRoute
+  '/orders': typeof AppOrdersIndexRoute
   '/products': typeof AppProductsIndexRoute
   '/profile': typeof AppProfileIndexRoute
   '/reviews': typeof AppReviewsIndexRoute
@@ -188,6 +204,7 @@ export interface FileRoutesByTo {
   '/products/$productId': typeof AppProductsProductIdIndexRoute
   '/products/add': typeof AppProductsAddIndexRoute
   '/support/add': typeof AppSupportAddIndexRoute
+  '/orders/show/$orderUuid': typeof AppOrdersShowOrderUuidIndexRoute
   '/products/edit/$productId': typeof AppProductsEditProductIdIndexRoute
   '/products/variants/$productId': typeof AppProductsVariantsProductIdIndexRoute
   '/support/show/$ticketId': typeof AppSupportShowTicketIdIndexRoute
@@ -205,6 +222,7 @@ export interface FileRoutesById {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/signin': typeof AuthSigninRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/orders/': typeof AppOrdersIndexRoute
   '/_app/products/': typeof AppProductsIndexRoute
   '/_app/profile/': typeof AppProfileIndexRoute
   '/_app/reviews/': typeof AppReviewsIndexRoute
@@ -213,6 +231,7 @@ export interface FileRoutesById {
   '/_app/products/$productId/': typeof AppProductsProductIdIndexRoute
   '/_app/products/add/': typeof AppProductsAddIndexRoute
   '/_app/support/add/': typeof AppSupportAddIndexRoute
+  '/_app/orders/show/$orderUuid/': typeof AppOrdersShowOrderUuidIndexRoute
   '/_app/products/edit/$productId/': typeof AppProductsEditProductIdIndexRoute
   '/_app/products/variants/$productId/': typeof AppProductsVariantsProductIdIndexRoute
   '/_app/support/show/$ticketId/': typeof AppSupportShowTicketIdIndexRoute
@@ -230,6 +249,7 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/auth/reset-password'
     | '/auth/signin'
+    | '/orders/'
     | '/products/'
     | '/profile/'
     | '/reviews/'
@@ -238,6 +258,7 @@ export interface FileRouteTypes {
     | '/products/$productId/'
     | '/products/add/'
     | '/support/add/'
+    | '/orders/show/$orderUuid/'
     | '/products/edit/$productId/'
     | '/products/variants/$productId/'
     | '/support/show/$ticketId/'
@@ -253,6 +274,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/signin'
     | '/'
+    | '/orders'
     | '/products'
     | '/profile'
     | '/reviews'
@@ -261,6 +283,7 @@ export interface FileRouteTypes {
     | '/products/$productId'
     | '/products/add'
     | '/support/add'
+    | '/orders/show/$orderUuid'
     | '/products/edit/$productId'
     | '/products/variants/$productId'
     | '/support/show/$ticketId'
@@ -277,6 +300,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/signin'
     | '/_app/'
+    | '/_app/orders/'
     | '/_app/products/'
     | '/_app/profile/'
     | '/_app/reviews/'
@@ -285,6 +309,7 @@ export interface FileRouteTypes {
     | '/_app/products/$productId/'
     | '/_app/products/add/'
     | '/_app/support/add/'
+    | '/_app/orders/show/$orderUuid/'
     | '/_app/products/edit/$productId/'
     | '/_app/products/variants/$productId/'
     | '/_app/support/show/$ticketId/'
@@ -392,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProductsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/orders/': {
+      id: '/_app/orders/'
+      path: '/orders'
+      fullPath: '/orders/'
+      preLoaderRoute: typeof AppOrdersIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/support/add/': {
       id: '/_app/support/add/'
       path: '/support/add'
@@ -434,6 +466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProductsEditProductIdIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/orders/show/$orderUuid/': {
+      id: '/_app/orders/show/$orderUuid/'
+      path: '/orders/show/$orderUuid'
+      fullPath: '/orders/show/$orderUuid/'
+      preLoaderRoute: typeof AppOrdersShowOrderUuidIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/products/variants/$productId/add/': {
       id: '/_app/products/variants/$productId/add/'
       path: '/products/variants/$productId/add'
@@ -460,6 +499,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
+  AppOrdersIndexRoute: typeof AppOrdersIndexRoute
   AppProductsIndexRoute: typeof AppProductsIndexRoute
   AppProfileIndexRoute: typeof AppProfileIndexRoute
   AppReviewsIndexRoute: typeof AppReviewsIndexRoute
@@ -468,6 +508,7 @@ interface AppRouteChildren {
   AppProductsProductIdIndexRoute: typeof AppProductsProductIdIndexRoute
   AppProductsAddIndexRoute: typeof AppProductsAddIndexRoute
   AppSupportAddIndexRoute: typeof AppSupportAddIndexRoute
+  AppOrdersShowOrderUuidIndexRoute: typeof AppOrdersShowOrderUuidIndexRoute
   AppProductsEditProductIdIndexRoute: typeof AppProductsEditProductIdIndexRoute
   AppProductsVariantsProductIdIndexRoute: typeof AppProductsVariantsProductIdIndexRoute
   AppSupportShowTicketIdIndexRoute: typeof AppSupportShowTicketIdIndexRoute
@@ -478,6 +519,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
+  AppOrdersIndexRoute: AppOrdersIndexRoute,
   AppProductsIndexRoute: AppProductsIndexRoute,
   AppProfileIndexRoute: AppProfileIndexRoute,
   AppReviewsIndexRoute: AppReviewsIndexRoute,
@@ -486,6 +528,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProductsProductIdIndexRoute: AppProductsProductIdIndexRoute,
   AppProductsAddIndexRoute: AppProductsAddIndexRoute,
   AppSupportAddIndexRoute: AppSupportAddIndexRoute,
+  AppOrdersShowOrderUuidIndexRoute: AppOrdersShowOrderUuidIndexRoute,
   AppProductsEditProductIdIndexRoute: AppProductsEditProductIdIndexRoute,
   AppProductsVariantsProductIdIndexRoute:
     AppProductsVariantsProductIdIndexRoute,

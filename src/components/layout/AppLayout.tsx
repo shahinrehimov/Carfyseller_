@@ -1,6 +1,6 @@
 import { Outlet } from "@tanstack/react-router";
 import { useState } from "react";
-import { LayoutDashboard, Package, Star, LifeBuoy, Store } from "lucide-react";
+import { LayoutDashboard, Package, Star, LifeBuoy, Store, ShoppingCart } from "lucide-react";
 import { useMediaQuery } from "@uidotdev/usehooks";
 import { Sidebar, SidebarItem } from "../ui/sidebar";
 import { Header } from "../ui/header";
@@ -20,6 +20,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { icon: <LayoutDashboard />, label: t("dashboard"), href: "/" },
     { icon: <Store />, label: t("store_profile"), href: "/store" },
     { icon: <Package />, label: t("products"), href: "/products" },
+    { icon: <ShoppingCart />, label: t("orders", "Sifarişlər"), href: "/orders" },
     { icon: <Star />, label: t("reviews"), href: "/reviews" },
     { icon: <LifeBuoy />, label: t("support"), href: "/support" },
   ];
