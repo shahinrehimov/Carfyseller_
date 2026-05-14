@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,19 +57,20 @@ function RouteComponent() {
   const { data: langs = [] } = useLangs();
 
   const TARGET_TYPE_OPTIONS = [
-    { value: "bulk",       label: t("target_bulk_my_customers") },
+    { value: "bulk", label: t("target_bulk_my_customers") },
     { value: "individual", label: t("target_individual_label") },
   ];
 
   const ACTION_TYPE_OPTIONS = [
-    { value: "none",     label: t("action_none") },
-    { value: "order",    label: t("action_order") },
-    { value: "product",  label: t("action_product") },
+    { value: "none", label: t("action_none") },
+    { value: "order", label: t("action_order") },
+    { value: "product", label: t("action_product") },
     { value: "category", label: t("action_category") },
-    { value: "url",      label: t("action_url") },
+    { value: "url", label: t("action_url") },
   ];
 
-  const { data: previewData, isLoading: previewLoading } = useTargetingPreview();
+  const { data: previewData, isLoading: previewLoading } =
+    useTargetingPreview();
   const createMutation = useCreateSellerNotification();
 
   const form = useForm<FormData>({
@@ -101,7 +102,10 @@ function RouteComponent() {
     }
   }, [langs]);
 
-  const { fields } = useFieldArray({ control: form.control, name: "translations" });
+  const { fields } = useFieldArray({
+    control: form.control,
+    name: "translations",
+  });
   const targetType = form.watch("target_type");
   const actionType = form.watch("action_type");
 
@@ -117,7 +121,10 @@ function RouteComponent() {
 
     let target_filters: { user_ids?: number[] } | null = null;
     if (data.target_type === "individual") {
-      const ids = (data.user_ids ?? "").split(",").map((s) => Number(s.trim())).filter(Boolean);
+      const ids = (data.user_ids ?? "")
+        .split(",")
+        .map((s) => Number(s.trim()))
+        .filter(Boolean);
       if (ids.length === 0) {
         toast.error(t("enter_at_least_one_user_id"));
         return;
@@ -144,8 +151,11 @@ function RouteComponent() {
   return (
     <div className="space-y-6 py-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm"
-          onClick={() => router.navigate({ to: "/push-notifications" })}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.navigate({ to: "/push-notifications" })}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-semibold">{t("new_notification")}</h1>
@@ -154,14 +164,18 @@ function RouteComponent() {
       <div className="mx-auto max-w-2xl">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
             {/* Translations */}
             <div className="space-y-4 rounded-xl border bg-white p-5 dark:bg-gray-900/20">
-              <h2 className="text-base font-semibold">{t("notification_text")}</h2>
+              <h2 className="text-base font-semibold">
+                {t("notification_text")}
+              </h2>
               {fields.map((field, i) => {
                 const lang = langs[i] as any;
                 return (
-                  <div key={field.id} className="rounded-lg border p-4 space-y-3">
+                  <div
+                    key={field.id}
+                    className="rounded-lg border p-4 space-y-3"
+                  >
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                       {lang?.title ?? lang?.key?.toUpperCase()}
                     </p>
@@ -172,7 +186,10 @@ function RouteComponent() {
                         <FormItem>
                           <FormLabel>{t("title")}</FormLabel>
                           <FormControl>
-                            <Input placeholder={t("notification_title_placeholder")} {...f} />
+                            <Input
+                              placeholder={t("notification_title_placeholder")}
+                              {...f}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -185,7 +202,11 @@ function RouteComponent() {
                         <FormItem>
                           <FormLabel>{t("body")}</FormLabel>
                           <FormControl>
-                            <Textarea placeholder={t("notification_body_placeholder")} rows={2} {...f} />
+                            <Textarea
+                              placeholder={t("notification_body_placeholder")}
+                              rows={2}
+                              {...f}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -206,8 +227,12 @@ function RouteComponent() {
                   <FormItem>
                     <FormLabel>{t("target_type")}</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}
-                        options={TARGET_TYPE_OPTIONS} placeholder={t("select")} />
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        options={TARGET_TYPE_OPTIONS}
+                        placeholder={t("select")}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -221,11 +246,15 @@ function RouteComponent() {
                     {previewLoading ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                        <span className="text-sm text-blue-700">{t("loading")}</span>
+                        <span className="text-sm text-blue-700">
+                          {t("loading")}
+                        </span>
                       </div>
                     ) : (
                       <p className="text-sm text-blue-800 dark:text-blue-300">
-                        <span className="font-bold">{previewData?.count ?? 0}</span>{" "}
+                        <span className="font-bold">
+                          {previewData?.count ?? 0}
+                        </span>{" "}
                         {t("customers_will_receive")}
                       </p>
                     )}
@@ -255,14 +284,22 @@ function RouteComponent() {
               <h2 className="text-base font-semibold">{t("channels")}</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {(["in_app", "push", "sms", "email"] as const).map((ch) => (
-                  <FormField key={ch} control={form.control} name={`channels.${ch}`}
+                  <FormField
+                    key={ch}
+                    control={form.control}
+                    name={`channels.${ch}`}
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center gap-2 rounded-lg border p-3">
                           <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
                           </FormControl>
-                          <FormLabel className="cursor-pointer font-normal uppercase text-xs">{ch}</FormLabel>
+                          <FormLabel className="cursor-pointer font-normal uppercase text-xs">
+                            {ch}
+                          </FormLabel>
                         </div>
                       </FormItem>
                     )}
@@ -281,8 +318,12 @@ function RouteComponent() {
                   <FormItem>
                     <FormLabel>{t("action_type")}</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}
-                        options={ACTION_TYPE_OPTIONS} placeholder={t("select")} />
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        options={ACTION_TYPE_OPTIONS}
+                        placeholder={t("select")}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -295,10 +336,10 @@ function RouteComponent() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        {actionType === "order"    && t("order_uuid")}
-                        {actionType === "product"  && t("product_slug")}
+                        {actionType === "order" && t("order_uuid")}
+                        {actionType === "product" && t("product_slug")}
                         {actionType === "category" && t("category_slug")}
-                        {actionType === "url"      && "URL"}
+                        {actionType === "url" && "URL"}
                       </FormLabel>
                       <FormControl>
                         <Input placeholder="..." {...field} />
@@ -311,11 +352,19 @@ function RouteComponent() {
             </div>
 
             <div className="flex gap-3">
-              <Button type="button" variant="outline" className="flex-1"
-                onClick={() => router.navigate({ to: "/push-notifications" })}>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => router.navigate({ to: "/push-notifications" })}
+              >
                 {t("cancel")}
               </Button>
-              <Button type="submit" className="flex-1" disabled={createMutation.isPending}>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={createMutation.isPending}
+              >
                 {createMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
