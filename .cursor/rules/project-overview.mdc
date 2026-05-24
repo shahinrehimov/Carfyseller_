@@ -1,0 +1,83 @@
+---
+description: carfy_company Seller Panel — layihə strukturu, texnologiya yığımı və ümumi konvensiyalar
+alwaysApply: true
+---
+
+# carfy_company — Seller Panel
+
+## Texnologiya Yığımı
+- **Framework**: React 19 + TypeScript + Vite 6
+- **Routing**: TanStack Router (`@tanstack/react-router`) — fayl əsaslı
+- **Server state**: TanStack Query v5
+- **Client state**: Zustand v5 (`src/store/`)
+- **Forma**: React Hook Form + Zod
+- **UI**: Tailwind CSS v4 + Radix UI + shadcn/ui (`src/components/ui/`)
+- **Notifikasiya**: Sonner
+- **HTTP**: Axios — `controlPrivateApi` (`src/lib/axios/controlPrivateApi.ts`)
+- **Dil**: `useTranslation()` hook-u (`src/lib/utils/translationLoader.ts`)
+
+## API Konfiqurasiyası
+- Base URL: `https://api.carfy.az/api/sellers` (`VITE_CONTROL_API_URL`)
+- `controlPrivateApi` — auth token + `Accept-Language` + `Token` header-ları avtomatik əlavə edir
+- **403 `password_must_change`** → `/change-password` route-una yönləndirir
+- **403 `company_not_verified`** → `useCompanyNotVerifiedStore` ilə modal göstərir
+- Query faylları: `src/lib/queries/*.ts`
+
+## Qovluq Strukturu
+```
+src/
+  lib/
+    axios/           # controlPrivateApi.ts (auth + 403 handling)
+    queries/         # API modülləri — hər modul üçün ayrı fayl
+  routes/
+    auth/            # signin, register, forgot-password, reset-password
+    change-password.tsx   # Şifrə dəyişdirmə (403 yönləndirmə)
+    _app/            # qorunan route-lar
+      store/         # mağaza profili
+      products/      # məhsul siyahısı, əlavə, redaktə
+      orders/        # sifariş idarəetməsi
+      reviews/       # rəylər
+      push-notifications/
+      support/
+      profile/
+  components/
+    ui/              # shadcn/ui komponentləri
+  store/
+    auth.ts          # Zustand auth store
+    companyNotVerified.ts  # Doğrulanmamış şirkət modal state
+    translations.ts
+```
+
+## carfy_admin ilə Fərqlər
+| | carfy_admin | carfy_company |
+|---|---|---|
+| Base URL | `/api/control` | `/api/sellers` |
+| Qeydiyyat | Yoxdur | `POST /sellers/register` |
+| Şifrə məcburi dəyişmə | Yoxdur | 403 → `/change-password` |
+| Şirkət doğrulama | Tərəfindən idarə edilir | `company_not_verified` modal |
+| Xüsusi route | `/companies`, `/users`, ... | `/store-profile`, `/company-product-variants` |
+
+## Ümumi Konvensiyalar
+- `controlPrivateApi` — həmişə bu instance (seller API-ya yönlənir)
+- Bütün mətn `useTranslation()` vasitəsilə
+- **Fallback istifadə etmə** — `t("key")` yalnız bir argumentlə; ikinci argument (fallback mətn) heç yerdə yazılmamalıdır
+- Forma validasiyası Zod ilə
+- `toast.error(error.response?.data?.message || t("an_error_occurred"))`
+- `isPending` vəziyyətini button-da göstər
+- `any` tipi işlətmə
+
+## Tərcümə — Fallback Qadağası
+
+Heç yerdə fallback mətn yazma. Yalnız translation key istifadə et.
+
+```tsx
+// ❌ YANLIŞ
+t("orders", "Sifarişlər")
+t("an_error_occurred", "Xəta baş verdi")
+
+// ✅ DÜZGÜN
+t("orders")
+t("an_error_occurred")
+```
+
+Key backend translations-da yoxdursa, admin panelin Translations bölməsində əlavə et — kodda fallback yazma.

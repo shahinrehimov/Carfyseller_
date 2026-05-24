@@ -20,13 +20,16 @@ import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-pas
 import { Route as AppSupportIndexRouteImport } from './routes/_app/support/index'
 import { Route as AppStoreIndexRouteImport } from './routes/_app/store/index'
 import { Route as AppReviewsIndexRouteImport } from './routes/_app/reviews/index'
+import { Route as AppPushNotificationsIndexRouteImport } from './routes/_app/push-notifications/index'
 import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index'
 import { Route as AppProductsIndexRouteImport } from './routes/_app/products/index'
 import { Route as AppOrdersIndexRouteImport } from './routes/_app/orders/index'
 import { Route as AppSupportAddIndexRouteImport } from './routes/_app/support/add/index'
+import { Route as AppPushNotificationsAddIndexRouteImport } from './routes/_app/push-notifications/add/index'
 import { Route as AppProductsAddIndexRouteImport } from './routes/_app/products/add/index'
 import { Route as AppProductsProductIdIndexRouteImport } from './routes/_app/products/$productId/index'
 import { Route as AppSupportShowTicketIdIndexRouteImport } from './routes/_app/support/show/$ticketId/index'
+import { Route as AppPushNotificationsShowNotificationIdIndexRouteImport } from './routes/_app/push-notifications/show/$notificationId/index'
 import { Route as AppProductsVariantsProductIdIndexRouteImport } from './routes/_app/products/variants/$productId/index'
 import { Route as AppProductsEditProductIdIndexRouteImport } from './routes/_app/products/edit/$productId/index'
 import { Route as AppOrdersShowOrderUuidIndexRouteImport } from './routes/_app/orders/show/$orderUuid/index'
@@ -88,6 +91,12 @@ const AppReviewsIndexRoute = AppReviewsIndexRouteImport.update({
   path: '/reviews/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPushNotificationsIndexRoute =
+  AppPushNotificationsIndexRouteImport.update({
+    id: '/push-notifications/',
+    path: '/push-notifications/',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProfileIndexRoute = AppProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
@@ -108,6 +117,12 @@ const AppSupportAddIndexRoute = AppSupportAddIndexRouteImport.update({
   path: '/support/add/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPushNotificationsAddIndexRoute =
+  AppPushNotificationsAddIndexRouteImport.update({
+    id: '/push-notifications/add/',
+    path: '/push-notifications/add/',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProductsAddIndexRoute = AppProductsAddIndexRouteImport.update({
   id: '/products/add/',
   path: '/products/add/',
@@ -123,6 +138,12 @@ const AppSupportShowTicketIdIndexRoute =
   AppSupportShowTicketIdIndexRouteImport.update({
     id: '/support/show/$ticketId/',
     path: '/support/show/$ticketId/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppPushNotificationsShowNotificationIdIndexRoute =
+  AppPushNotificationsShowNotificationIdIndexRouteImport.update({
+    id: '/push-notifications/show/$notificationId/',
+    path: '/push-notifications/show/$notificationId/',
     getParentRoute: () => AppRoute,
   } as any)
 const AppProductsVariantsProductIdIndexRoute =
@@ -173,15 +194,18 @@ export interface FileRoutesByFullPath {
   '/orders/': typeof AppOrdersIndexRoute
   '/products/': typeof AppProductsIndexRoute
   '/profile/': typeof AppProfileIndexRoute
+  '/push-notifications/': typeof AppPushNotificationsIndexRoute
   '/reviews/': typeof AppReviewsIndexRoute
   '/store/': typeof AppStoreIndexRoute
   '/support/': typeof AppSupportIndexRoute
   '/products/$productId/': typeof AppProductsProductIdIndexRoute
   '/products/add/': typeof AppProductsAddIndexRoute
+  '/push-notifications/add/': typeof AppPushNotificationsAddIndexRoute
   '/support/add/': typeof AppSupportAddIndexRoute
   '/orders/show/$orderUuid/': typeof AppOrdersShowOrderUuidIndexRoute
   '/products/edit/$productId/': typeof AppProductsEditProductIdIndexRoute
   '/products/variants/$productId/': typeof AppProductsVariantsProductIdIndexRoute
+  '/push-notifications/show/$notificationId/': typeof AppPushNotificationsShowNotificationIdIndexRoute
   '/support/show/$ticketId/': typeof AppSupportShowTicketIdIndexRoute
   '/products/variants/$productId/add/': typeof AppProductsVariantsProductIdAddIndexRoute
   '/products/variants/$productId/edit/$variantId/': typeof AppProductsVariantsProductIdEditVariantIdIndexRoute
@@ -198,15 +222,18 @@ export interface FileRoutesByTo {
   '/orders': typeof AppOrdersIndexRoute
   '/products': typeof AppProductsIndexRoute
   '/profile': typeof AppProfileIndexRoute
+  '/push-notifications': typeof AppPushNotificationsIndexRoute
   '/reviews': typeof AppReviewsIndexRoute
   '/store': typeof AppStoreIndexRoute
   '/support': typeof AppSupportIndexRoute
   '/products/$productId': typeof AppProductsProductIdIndexRoute
   '/products/add': typeof AppProductsAddIndexRoute
+  '/push-notifications/add': typeof AppPushNotificationsAddIndexRoute
   '/support/add': typeof AppSupportAddIndexRoute
   '/orders/show/$orderUuid': typeof AppOrdersShowOrderUuidIndexRoute
   '/products/edit/$productId': typeof AppProductsEditProductIdIndexRoute
   '/products/variants/$productId': typeof AppProductsVariantsProductIdIndexRoute
+  '/push-notifications/show/$notificationId': typeof AppPushNotificationsShowNotificationIdIndexRoute
   '/support/show/$ticketId': typeof AppSupportShowTicketIdIndexRoute
   '/products/variants/$productId/add': typeof AppProductsVariantsProductIdAddIndexRoute
   '/products/variants/$productId/edit/$variantId': typeof AppProductsVariantsProductIdEditVariantIdIndexRoute
@@ -225,15 +252,18 @@ export interface FileRoutesById {
   '/_app/orders/': typeof AppOrdersIndexRoute
   '/_app/products/': typeof AppProductsIndexRoute
   '/_app/profile/': typeof AppProfileIndexRoute
+  '/_app/push-notifications/': typeof AppPushNotificationsIndexRoute
   '/_app/reviews/': typeof AppReviewsIndexRoute
   '/_app/store/': typeof AppStoreIndexRoute
   '/_app/support/': typeof AppSupportIndexRoute
   '/_app/products/$productId/': typeof AppProductsProductIdIndexRoute
   '/_app/products/add/': typeof AppProductsAddIndexRoute
+  '/_app/push-notifications/add/': typeof AppPushNotificationsAddIndexRoute
   '/_app/support/add/': typeof AppSupportAddIndexRoute
   '/_app/orders/show/$orderUuid/': typeof AppOrdersShowOrderUuidIndexRoute
   '/_app/products/edit/$productId/': typeof AppProductsEditProductIdIndexRoute
   '/_app/products/variants/$productId/': typeof AppProductsVariantsProductIdIndexRoute
+  '/_app/push-notifications/show/$notificationId/': typeof AppPushNotificationsShowNotificationIdIndexRoute
   '/_app/support/show/$ticketId/': typeof AppSupportShowTicketIdIndexRoute
   '/_app/products/variants/$productId/add/': typeof AppProductsVariantsProductIdAddIndexRoute
   '/_app/products/variants/$productId/edit/$variantId/': typeof AppProductsVariantsProductIdEditVariantIdIndexRoute
@@ -252,15 +282,18 @@ export interface FileRouteTypes {
     | '/orders/'
     | '/products/'
     | '/profile/'
+    | '/push-notifications/'
     | '/reviews/'
     | '/store/'
     | '/support/'
     | '/products/$productId/'
     | '/products/add/'
+    | '/push-notifications/add/'
     | '/support/add/'
     | '/orders/show/$orderUuid/'
     | '/products/edit/$productId/'
     | '/products/variants/$productId/'
+    | '/push-notifications/show/$notificationId/'
     | '/support/show/$ticketId/'
     | '/products/variants/$productId/add/'
     | '/products/variants/$productId/edit/$variantId/'
@@ -277,15 +310,18 @@ export interface FileRouteTypes {
     | '/orders'
     | '/products'
     | '/profile'
+    | '/push-notifications'
     | '/reviews'
     | '/store'
     | '/support'
     | '/products/$productId'
     | '/products/add'
+    | '/push-notifications/add'
     | '/support/add'
     | '/orders/show/$orderUuid'
     | '/products/edit/$productId'
     | '/products/variants/$productId'
+    | '/push-notifications/show/$notificationId'
     | '/support/show/$ticketId'
     | '/products/variants/$productId/add'
     | '/products/variants/$productId/edit/$variantId'
@@ -303,15 +339,18 @@ export interface FileRouteTypes {
     | '/_app/orders/'
     | '/_app/products/'
     | '/_app/profile/'
+    | '/_app/push-notifications/'
     | '/_app/reviews/'
     | '/_app/store/'
     | '/_app/support/'
     | '/_app/products/$productId/'
     | '/_app/products/add/'
+    | '/_app/push-notifications/add/'
     | '/_app/support/add/'
     | '/_app/orders/show/$orderUuid/'
     | '/_app/products/edit/$productId/'
     | '/_app/products/variants/$productId/'
+    | '/_app/push-notifications/show/$notificationId/'
     | '/_app/support/show/$ticketId/'
     | '/_app/products/variants/$productId/add/'
     | '/_app/products/variants/$productId/edit/$variantId/'
@@ -403,6 +442,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReviewsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/push-notifications/': {
+      id: '/_app/push-notifications/'
+      path: '/push-notifications'
+      fullPath: '/push-notifications/'
+      preLoaderRoute: typeof AppPushNotificationsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/profile/': {
       id: '/_app/profile/'
       path: '/profile'
@@ -431,6 +477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSupportAddIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/push-notifications/add/': {
+      id: '/_app/push-notifications/add/'
+      path: '/push-notifications/add'
+      fullPath: '/push-notifications/add/'
+      preLoaderRoute: typeof AppPushNotificationsAddIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/products/add/': {
       id: '/_app/products/add/'
       path: '/products/add'
@@ -450,6 +503,13 @@ declare module '@tanstack/react-router' {
       path: '/support/show/$ticketId'
       fullPath: '/support/show/$ticketId/'
       preLoaderRoute: typeof AppSupportShowTicketIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/push-notifications/show/$notificationId/': {
+      id: '/_app/push-notifications/show/$notificationId/'
+      path: '/push-notifications/show/$notificationId'
+      fullPath: '/push-notifications/show/$notificationId/'
+      preLoaderRoute: typeof AppPushNotificationsShowNotificationIdIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/products/variants/$productId/': {
@@ -502,15 +562,18 @@ interface AppRouteChildren {
   AppOrdersIndexRoute: typeof AppOrdersIndexRoute
   AppProductsIndexRoute: typeof AppProductsIndexRoute
   AppProfileIndexRoute: typeof AppProfileIndexRoute
+  AppPushNotificationsIndexRoute: typeof AppPushNotificationsIndexRoute
   AppReviewsIndexRoute: typeof AppReviewsIndexRoute
   AppStoreIndexRoute: typeof AppStoreIndexRoute
   AppSupportIndexRoute: typeof AppSupportIndexRoute
   AppProductsProductIdIndexRoute: typeof AppProductsProductIdIndexRoute
   AppProductsAddIndexRoute: typeof AppProductsAddIndexRoute
+  AppPushNotificationsAddIndexRoute: typeof AppPushNotificationsAddIndexRoute
   AppSupportAddIndexRoute: typeof AppSupportAddIndexRoute
   AppOrdersShowOrderUuidIndexRoute: typeof AppOrdersShowOrderUuidIndexRoute
   AppProductsEditProductIdIndexRoute: typeof AppProductsEditProductIdIndexRoute
   AppProductsVariantsProductIdIndexRoute: typeof AppProductsVariantsProductIdIndexRoute
+  AppPushNotificationsShowNotificationIdIndexRoute: typeof AppPushNotificationsShowNotificationIdIndexRoute
   AppSupportShowTicketIdIndexRoute: typeof AppSupportShowTicketIdIndexRoute
   AppProductsVariantsProductIdAddIndexRoute: typeof AppProductsVariantsProductIdAddIndexRoute
   AppProductsVariantsProductIdEditVariantIdIndexRoute: typeof AppProductsVariantsProductIdEditVariantIdIndexRoute
@@ -522,16 +585,20 @@ const AppRouteChildren: AppRouteChildren = {
   AppOrdersIndexRoute: AppOrdersIndexRoute,
   AppProductsIndexRoute: AppProductsIndexRoute,
   AppProfileIndexRoute: AppProfileIndexRoute,
+  AppPushNotificationsIndexRoute: AppPushNotificationsIndexRoute,
   AppReviewsIndexRoute: AppReviewsIndexRoute,
   AppStoreIndexRoute: AppStoreIndexRoute,
   AppSupportIndexRoute: AppSupportIndexRoute,
   AppProductsProductIdIndexRoute: AppProductsProductIdIndexRoute,
   AppProductsAddIndexRoute: AppProductsAddIndexRoute,
+  AppPushNotificationsAddIndexRoute: AppPushNotificationsAddIndexRoute,
   AppSupportAddIndexRoute: AppSupportAddIndexRoute,
   AppOrdersShowOrderUuidIndexRoute: AppOrdersShowOrderUuidIndexRoute,
   AppProductsEditProductIdIndexRoute: AppProductsEditProductIdIndexRoute,
   AppProductsVariantsProductIdIndexRoute:
     AppProductsVariantsProductIdIndexRoute,
+  AppPushNotificationsShowNotificationIdIndexRoute:
+    AppPushNotificationsShowNotificationIdIndexRoute,
   AppSupportShowTicketIdIndexRoute: AppSupportShowTicketIdIndexRoute,
   AppProductsVariantsProductIdAddIndexRoute:
     AppProductsVariantsProductIdAddIndexRoute,

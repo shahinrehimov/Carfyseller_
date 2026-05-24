@@ -1,0 +1,97 @@
+---
+description: carfy_company — route səhifələri, product CRUD formaları və popup pattern-ləri
+globs: carfy_company/src/routes/**/*.tsx
+alwaysApply: false
+---
+
+# Route Səhifələri və Popup Komponentlər
+
+## Qovluq Strukturu
+
+```
+routes/_app/
+  products/
+    index.tsx                     # məhsul siyahısı
+    add/index.tsx                 # yeni məhsul
+    edit/$productId/index.tsx     # məhsul redaktəsi
+    $productId/index.tsx          # məhsul detalı
+    variants/$productId/
+      index.tsx                   # variant siyahısı
+      add/index.tsx               # yeni variant
+      edit/$variantId/index.tsx   # variant redaktəsi
+      show/$variantId/index.tsx   # variant detalı
+  orders/
+    index.tsx
+    show/$orderUuid/index.tsx
+  store/index.tsx                 # mağaza profili
+  reviews/index.tsx
+  push-notifications/
+    index.tsx
+    add/index.tsx
+    show/$notificationId/index.tsx
+  support/
+    index.tsx
+    add/index.tsx
+    show/$ticketId/index.tsx
+  profile/index.tsx
+```
+
+## Pending Revision Pattern (Məhsul/Variant)
+
+```tsx
+import { useProductPendingRevision } from "@/lib/queries/products";
+
+function ProductDetail({ productId }: { productId: number }) {
+  const { data: revision } = useProductPendingRevision(productId);
+  // revision varsa "Gözləmədə" badge-i göstər
+  return revision ? <PendingBadge /> : null;
+}
+```
+
+## Order Item Status Update Pattern
+
+```tsx
+import { useUpdateOrderItemStatus, getAllowedNextItemStatuses } from "@/lib/queries/orders";
+
+function OrderItem({ item, orderStatus }) {
+  const updateStatus = useUpdateOrderItemStatus();
+  const allowedStatuses = getAllowedNextItemStatuses(item.status, orderStatus);
+
+  return (
+    <select
+      onChange={(e) => updateStatus.mutate({
+        orderItemId: item.id,
+        orderUuid: item.orderUuid,
+        payload: { status: e.target.value, cancel_reason: null },
+      })}
+    >
+      {allowedStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+    </select>
+  );
+}
+```
+
+## Store Profile Update Pattern
+
+```tsx
+import { useStoreProfile, useUpdateStoreProfile } from "@/lib/queries/store-profile";
+
+function StorePage() {
+  const { data: profile } = useStoreProfile();
+  const updateMutation = useUpdateStoreProfile();
+
+  const onSubmit = async (data) => {
+    const fd = new FormData();
+    fd.append("title", data.title);
+    if (data.logo instanceof File) fd.append("logo", data.logo);
+    await updateMutation.mutateAsync(fd);
+  };
+}
+```
+
+## Qaydalar
+- Seller panel-da `add/index.tsx` pattern-i işlət (popup yox, tam səhifə)
+- Məhsul/variant formalarında `FormData` istifadə et (şəkil yükləmə üçün)
+- Pending revision varsa UI-da göstər — istifadəçi bilməlidir
+- Order status-ları `getAllowedNextItemStatuses()` ilə yoxla — invalid keçidə icazə vermə
+- `companyNotVerified` store-unu check etmə — `controlPrivateApi` bunu avtomatik idarə edir

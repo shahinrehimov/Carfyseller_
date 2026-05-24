@@ -1,0 +1,104 @@
+---
+description: carfy_company API query faylları — yeni seller panel modülü üçün standart pattern
+globs: carfy_company/src/lib/queries/**/*.ts
+alwaysApply: false
+---
+
+# API Query Faylları — `src/lib/queries/`
+
+Hər modul üçün ayrı `.ts` faylı. Base URL `/api/sellers` artıq `controlPrivateApi`-da konfiqurasiya edilib.
+
+## Fayl Strukturu
+
+```ts
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { controlPrivateApi } from "../axios/controlPrivateApi";
+
+// 1. TİPLƏR — export et
+export interface Item { id: number; uuid: string; title: string; is_active: boolean; }
+interface ListResponse { data: Item[]; meta: { current_page: number; total: number; }; }
+interface Filters { page?: number; limit?: number; }
+
+// 2. API FUNKSİYALARI
+async function getItems(filters: Filters = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v !== null && v !== undefined && v !== "") params.append(k, String(v));
+  });
+  return (await controlPrivateApi.get<ListResponse>(`/items/load?${params}`)).data;
+}
+
+async function createItem(data: FormData | CreateRequest) {
+  return (await controlPrivateApi.post(`/items/add`, data)).data;
+}
+
+async function updateItem(id: number, data: FormData | UpdateRequest) {
+  return (await controlPrivateApi.post(`/items/update/${id}`, data)).data;
+}
+
+async function deleteItem(id: number) {
+  return (await controlPrivateApi.delete(`/items/delete/${id}`)).data;
+}
+
+// 3. QUERY OPTIONS
+export const itemsQueryOptions = (filters: Filters = {}) =>
+  queryOptions({ queryKey: ["seller-items", filters], queryFn: () => getItems(filters) });
+
+// 4. HOOKS
+export function useItems(filters: Filters = {}) {
+  return useQuery(itemsQueryOptions(filters));
+}
+
+export function useCreateItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createItem,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["seller-items"] }),
+  });
+}
+
+export function useUpdateItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateRequest }) => updateItem(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["seller-items"] }),
+  });
+}
+```
+
+## Seller Panel Spesifik Pattern-lər
+
+### Company Product Variants
+```ts
+// Seller öz məhsulunu CPV olaraq əlavə edir
+await controlPrivateApi.post(`/company-product-variants/attach/${productVariantId}`);
+await controlPrivateApi.post(`/company-product-variants/update/${cpvId}`, data);
+await controlPrivateApi.delete(`/company-product-variants/detach/${cpvId}`);
+
+// Şəkil əlavəsi
+const fd = new FormData();
+fd.append("image", file);
+await controlPrivateApi.post(`/company-product-variants/images/add/${cpvId}`, fd);
+```
+
+### Product Add/Update (FormData ilə)
+```ts
+const fd = new FormData();
+fd.append("slug", data.slug);
+// translations JSON kimi əlavə et:
+fd.append("translations", JSON.stringify(data.translations));
+if (file instanceof File) fd.append("image", file);
+await controlPrivateApi.post("/products/add", fd);
+```
+
+### Orders
+```ts
+// Sifariş maddəsinin statusunu dəyiş
+await controlPrivateApi.post(`/orders/items/${orderItemId}/status`, { status, cancel_reason });
+// Toplu dəyişiklik
+await controlPrivateApi.post(`/orders/${orderUuid}/items/bulk-status`, { item_ids, status, cancel_reason });
+```
+
+## QueryKey Konvensiyası
+- Seller query-ləri `"seller-"` prefiksi ilə başlasın: `["seller-products", filters]`
+- Bu, admin ilə eyni workspace-də işlənildikdə konflikt yaratmaz
