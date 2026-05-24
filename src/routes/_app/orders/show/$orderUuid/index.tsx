@@ -255,7 +255,7 @@ function OrderShowPage() {
       "ready_for_delivery",
       "canceled",
     ];
-    if (order.order_status === "courier_assigned")
+    if (order.status === "courier_assigned")
       raw.splice(2, 0, "handed_to_courier");
     return itemStatusOptions(t, raw);
   };
@@ -277,9 +277,9 @@ function OrderShowPage() {
                 {t("order", "Sifariş")} #{order.id}
               </h1>
               <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${orderStatusClass(order.order_status)}`}
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${orderStatusClass(order.status)}`}
               >
-                {t(`order_status_${order.order_status}`, order.order_status.replace(/_/g, " "))}
+                {t(`order_status_${order.status}`, order.status.replace(/_/g, " "))}
               </span>
             </div>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -301,13 +301,8 @@ function OrderShowPage() {
         <div className="flex flex-wrap items-baseline gap-4 text-sm">
           <span>
             {t("shipping_amount", "Çatdırılma haqqı")}:{" "}
-            <span className="font-medium tabular-nums">{formatAZN(order.shipping.amount)}</span>
+            <span className="font-medium tabular-nums">{formatAZN(order.shipping)}</span>
           </span>
-          {order.shipping.refunded && (
-            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-              {t("refunded", "Geri qaytarılıb")}
-            </span>
-          )}
         </div>
       </div>
 
@@ -367,7 +362,7 @@ function OrderShowPage() {
           </TableHeader>
           <TableBody>
             {order.items.map((item, index) => {
-              const next = getAllowedNextItemStatuses(item.status, order.order_status);
+              const next = getAllowedNextItemStatuses(item.status, order.status);
               const canSelect = item.status !== "canceled";
               return (
                 <TableRow key={item.id}>
@@ -380,7 +375,7 @@ function OrderShowPage() {
                   </TableCell>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>
-                    <div className="max-w-md font-medium">{item.product_title}</div>
+                    <div className="max-w-md font-medium">{item.product_variant.title}</div>
                     {item.cancel_reason && (
                       <p className="mt-1 text-xs text-red-600 dark:text-red-400">
                         {t("cancel_reason", "Səbəb")}: {item.cancel_reason}
@@ -403,10 +398,10 @@ function OrderShowPage() {
                   </TableCell>
                   <TableCell className="tabular-nums">{item.quantity}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatAZN(item.price)}
+                    {formatAZN(item.amount)}
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
-                    {formatAZN(item.subtotal)}
+                    {formatAZN(item.amount_final)}
                   </TableCell>
                   <TableCell>
                     <span

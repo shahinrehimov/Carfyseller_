@@ -93,7 +93,7 @@ function RouteComponent() {
           ))
         ) : orders.length > 0 ? (
           orders.map((order, index) => {
-            const subtotal = order.items.reduce((acc, it) => acc + it.subtotal, 0);
+            const subtotal = order.items.reduce((acc, it) => acc + it.amount_final, 0);
             return (
               <TableRow key={order.id}>
                 <TableCell>
@@ -105,7 +105,7 @@ function RouteComponent() {
                     {order.uuid.slice(0, 8)}…
                   </div>
                 </TableCell>
-                <TableCell>{orderStatusBadge(order.order_status)}</TableCell>
+                <TableCell>{orderStatusBadge(order.status)}</TableCell>
                 <TableCell>
                   <div className="text-sm">
                     {order.items.length}{" "}
@@ -113,7 +113,7 @@ function RouteComponent() {
                   </div>
                   {order.items[0] && (
                     <p className="mt-0.5 max-w-[220px] truncate text-xs text-gray-500">
-                      {order.items[0].product_title}
+                      {order.items[0].product_variant.title}
                     </p>
                   )}
                 </TableCell>
@@ -165,7 +165,7 @@ function RouteComponent() {
         ))
       ) : orders.length > 0 ? (
         orders.map((order) => {
-          const subtotal = order.items.reduce((acc, it) => acc + it.subtotal, 0);
+          const subtotal = order.items.reduce((acc, it) => acc + it.amount_final, 0);
           return (
             <Card key={order.id} className="p-4">
               <div className="flex items-start justify-between gap-2">
@@ -175,14 +175,14 @@ function RouteComponent() {
                     {order.created_at}
                   </p>
                 </div>
-                {orderStatusBadge(order.order_status)}
+                {orderStatusBadge(order.status)}
               </div>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
                 {order.items.length} {t("items_count", "məhsul")} · {formatAZN(subtotal)}
               </p>
               {order.items[0] && (
                 <p className="mt-1 line-clamp-2 text-xs text-gray-500">
-                  {order.items[0].product_title}
+                  {order.items[0].product_variant.title}
                 </p>
               )}
               <div className="mt-3 flex justify-end">

@@ -17,12 +17,22 @@ export type OrderItemStatus =
 
 export interface SellerOrderItem {
   id: number;
-  product_title: string;
-  quantity: number;
-  price: number;
-  subtotal: number;
   status: OrderItemStatus;
+  status_label: string;
   cancel_reason: string | null;
+  quantity: number;
+  amount: number;
+  amount_final: number;
+  is_set: boolean;
+  sets: unknown[];
+  product_variant: {
+    id: number;
+    title: string;
+  };
+  company_product_variant: {
+    id: number;
+    uuid: string;
+  };
   status_history?: Array<{
     status: OrderItemStatus;
     created_at: string;
@@ -32,22 +42,24 @@ export interface SellerOrderItem {
 export interface SellerOrderListEntry {
   id: number;
   uuid: string;
-  order_status: string;
+  status: string;
+  status_label: string;
+  payment_status: string;
+  payment_status_label: string;
   created_at: string;
+  shipping: number;
   items: Array<SellerOrderItem>;
-}
-
-export interface SellerOrderShipping {
-  amount: number;
-  refunded: boolean;
 }
 
 export interface SellerOrderDetail {
   id: number;
   uuid: string;
-  order_status: string;
+  status: string;
+  status_label: string;
+  payment_status: string;
+  payment_status_label: string;
   created_at: string;
-  shipping: SellerOrderShipping;
+  shipping: number;
   items: Array<SellerOrderItem>;
 }
 
