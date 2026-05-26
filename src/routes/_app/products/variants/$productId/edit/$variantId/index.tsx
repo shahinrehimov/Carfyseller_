@@ -46,6 +46,12 @@ function EditProductVariantPage() {
     images: Yup.array().notRequired(),
     stock: Yup.number().notRequired(),
     price: Yup.string().notRequired(),
+    size_category: Yup.string().notRequired(),
+    weight_gram: Yup.number()
+      .typeError(t("required_field"))
+      .notRequired()
+      .min(1)
+      .max(20000),
     has_discount: Yup.boolean().notRequired(),
     discount: Yup.string().when("has_discount", {
       is: true,
@@ -96,6 +102,7 @@ function EditProductVariantPage() {
   const [cpv, setCpv] = useState<any>(null);
   const [isCreator, setIsCreator] = useState(true);
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
+  const [sizeCategories, setSizeCategories] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
@@ -129,6 +136,8 @@ function EditProductVariantPage() {
       images: [{}],
       stock: 0,
       price: "",
+      size_category: "",
+      weight_gram: "" as any,
       has_discount: false,
       discount: "",
       discount_type: "",
@@ -178,9 +187,10 @@ function EditProductVariantPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [discountTypesRes, productOptionsRes, cpvRes, countriesRes, brandsRes] =
+        const [discountTypesRes, sizeCategoriesRes, productOptionsRes, cpvRes, countriesRes, brandsRes] =
           await Promise.all([
             controlPrivateApi.get("/discount-types/list").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get("/product-size-categories/list").catch(() => ({ data: { data: [] } })),
             controlPrivateApi.get("/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
             controlPrivateApi.get(`/company-product-variants/show/${variantId}`),
             controlPrivateApi.get("/countries/list?with_cities=yes").catch(() => ({ data: { data: [] } })),
@@ -205,6 +215,7 @@ function EditProductVariantPage() {
 
         const allBrands = brandsRes.data.data || [];
         setDiscountTypes(discountTypesRes.data.data || []);
+        setSizeCategories(sizeCategoriesRes.data.data || []);
         setProductOptions(productOptionsRes.data.data || []);
         setBrands(allBrands);
 
@@ -256,6 +267,8 @@ function EditProductVariantPage() {
           // CPV fields (always from CPV, not affected by revision)
           stock: cpvData.stock ?? 0,
           price: cpvData.price?.toString() || "",
+          size_category: cpvData.size_category?.value || cpvData.size_category || "",
+          weight_gram: cpvData.weight_gram || "" as any,
           has_discount: cpvData.discount > 0,
           discount: cpvData.discount?.toString() || "",
           discount_type: cpvData.discount_type || "",
@@ -404,6 +417,8 @@ function EditProductVariantPage() {
         : {
             has_discount: data.has_discount,
             city_id: data.city_id || null,
+            size_category: data.size_category,
+            weight_gram: data.weight_gram,
             stock: data.stock,
             price: data.price || null,
           };
@@ -797,6 +812,54 @@ function EditProductVariantPage() {
               />
               {errors.city_id && (
                 <p className="text-sm text-destructive">{errors.city_id.message}</p>
+              )}
+            </div>}
+
+            {/* Size Category — only for non-creator */}
+            {!isCreator && <div className="space-y-2">
+              <Label htmlFor="size_category">{t("size_category")} *</Label>
+              <Controller
+                name="size_category"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    placeholder={t("select")}
+                    options={sizeCategories.map((cat: any) => ({
+                      value: cat.id,
+                      label: cat.title,
+                    }))}
+                    disabled={loading}
+                  />
+                )}
+              />
+              {errors.size_category && (
+                <p className="text-sm text-destructive">{errors.size_category.message}</p>
+              )}
+            </div>}
+
+            {/* Weight — only for non-creator */}
+            {!isCreator && <div className="space-y-2">
+              <Label htmlFor="weight_gram">{t("weight_gram")} *</Label>
+              <Controller
+                name="weight_gram"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value ?? ""}
+                    id="weight_gram"
+                    type="number"
+                    min={1}
+                    max={20000}
+                    placeholder="e.g. 1500"
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                )}
+              />
+              {errors.weight_gram && (
+                <p className="text-sm text-destructive">{errors.weight_gram.message}</p>
               )}
             </div>}
           </div>

@@ -49,6 +49,12 @@ function AddProductPage() {
     price: Yup.string().required(t("required_field")),
     stock: Yup.number().notRequired(),
     city_id: Yup.number().notRequired(),
+    size_category: Yup.string().required(t("required_field")),
+    weight_gram: Yup.number()
+      .typeError(t("required_field"))
+      .required(t("required_field"))
+      .min(1)
+      .max(20000),
     has_discount: Yup.boolean().notRequired(),
     discount: Yup.string().when("has_discount", {
       is: true,
@@ -78,6 +84,8 @@ function AddProductPage() {
       price: "",
       stock: "" as any,
       city_id: undefined as number | undefined,
+      size_category: "",
+      weight_gram: "" as any,
       has_discount: false,
       discount: "",
       discount_type: "",
@@ -110,6 +118,8 @@ function AddProductPage() {
       price: "",
       stock: "" as any,
       city_id: undefined,
+      size_category: "",
+      weight_gram: "" as any,
       has_discount: false,
       discount: "",
       discount_type: "",
@@ -132,6 +142,8 @@ function AddProductPage() {
         price: data.price,
         stock: data.stock,
         city_id: data.city_id || null,
+        size_category: data.size_category,
+        weight_gram: data.weight_gram,
         has_discount: data.has_discount,
       };
 
@@ -281,6 +293,12 @@ function AddProductPage() {
       )
       .notRequired(),
     city_id: Yup.number().notRequired(),
+    size_category: Yup.string().required(t("required_field")),
+    weight_gram: Yup.number()
+      .typeError(t("required_field"))
+      .required(t("required_field"))
+      .min(1)
+      .max(20000),
     options: Yup.array()
       .of(
         Yup.object({
@@ -309,6 +327,7 @@ function AddProductPage() {
   const [modelSelectValue, setModelSelectValue] = useState<string>("");
   const [flattenedCategories, setFlattenedCategories] = useState<any[]>([]);
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
+  const [sizeCategories, setSizeCategories] = useState<any[]>([]);
   const [productOptions, setProductOptions] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
   const [pending, setPending] = useState(false);
@@ -358,6 +377,8 @@ function AddProductPage() {
       discount_end_at: undefined,
       year: "" as any,
       city_id: undefined,
+      size_category: "",
+      weight_gram: "" as any,
       options: [],
     },
   });
@@ -508,6 +529,7 @@ function AddProductPage() {
           brandsRes,
           categoriesRes,
           discountTypesRes,
+          sizeCategoriesRes,
           productOptionsRes,
           countriesRes,
         ] = await Promise.all([
@@ -519,6 +541,9 @@ function AddProductPage() {
             .catch(() => ({ data: { data: [] } })),
           controlPrivateApi
             .get("/discount-types/list")
+            .catch(() => ({ data: { data: [] } })),
+          controlPrivateApi
+            .get("/product-size-categories/list")
             .catch(() => ({ data: { data: [] } })),
           controlPrivateApi
             .get("/product-options/list?with_items=yes")
@@ -561,6 +586,7 @@ function AddProductPage() {
         setFlattenedCategories(flattened);
 
         setDiscountTypes(discountTypesRes.data.data || []);
+        setSizeCategories(sizeCategoriesRes.data.data || []);
         setProductOptions(productOptionsRes.data.data || []);
 
         const allCities = (countriesRes.data.data || []).flatMap(
@@ -646,6 +672,8 @@ function AddProductPage() {
         main_category_id: data.main_category_id,
         year: data.year || null,
         city_id: data.city_id || null,
+        size_category: data.size_category,
+        weight_gram: data.weight_gram,
         stock: data.stock,
         is_set: data.is_set,
         has_discount: data.has_discount,
@@ -958,6 +986,55 @@ function AddProductPage() {
                     />
                   )}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t("size_category")} *</Label>
+                <Controller
+                  name="size_category"
+                  control={attachForm.control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || ""}
+                      onValueChange={field.onChange}
+                      placeholder={t("select")}
+                      options={sizeCategories.map((cat: any) => ({
+                        value: cat.id,
+                        label: cat.title,
+                      }))}
+                      disabled={loading}
+                    />
+                  )}
+                />
+                {attachForm.formState.errors.size_category && (
+                  <p className="text-sm text-destructive">
+                    {attachForm.formState.errors.size_category.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t("weight_gram")} *</Label>
+                <Controller
+                  name="weight_gram"
+                  control={attachForm.control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      type="number"
+                      min={1}
+                      max={20000}
+                      placeholder="e.g. 1500"
+                      className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  )}
+                />
+                {attachForm.formState.errors.weight_gram && (
+                  <p className="text-sm text-destructive">
+                    {attachForm.formState.errors.weight_gram.message}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -1508,6 +1585,58 @@ function AddProductPage() {
               {errors.city_id && (
                 <p className="text-sm text-destructive">
                   {errors.city_id.message}
+                </p>
+              )}
+            </div>
+
+            {/* Size Category */}
+            <div className="space-y-2">
+              <Label htmlFor="size_category">{t("size_category")} *</Label>
+              <Controller
+                name="size_category"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    placeholder={t("select")}
+                    options={sizeCategories.map((cat: any) => ({
+                      value: cat.id,
+                      label: cat.title,
+                    }))}
+                    disabled={loading}
+                  />
+                )}
+              />
+              {errors.size_category && (
+                <p className="text-sm text-destructive">
+                  {errors.size_category.message}
+                </p>
+              )}
+            </div>
+
+            {/* Weight */}
+            <div className="space-y-2">
+              <Label htmlFor="weight_gram">{t("weight_gram")} *</Label>
+              <Controller
+                name="weight_gram"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    value={field.value ?? ""}
+                    id="weight_gram"
+                    type="number"
+                    min={1}
+                    max={20000}
+                    placeholder="e.g. 1500"
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                )}
+              />
+              {errors.weight_gram && (
+                <p className="text-sm text-destructive">
+                  {errors.weight_gram.message}
                 </p>
               )}
             </div>
