@@ -1,5 +1,11 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { controlApi } from "../axios/controlApi";
+import { controlPrivateApi } from "../axios/controlPrivateApi";
+
+export interface ProductSizeCategory {
+  id: number;
+  title: string;
+}
 
 export interface Country {
   id: number;
@@ -43,4 +49,19 @@ export function useCountries() {
 
 export function useCities(countryId: number | null) {
   return useQuery(citiesQueryOptions(countryId));
+}
+
+async function getProductSizeCategories() {
+  const response = await controlPrivateApi.get("/product-size-categories/list");
+  return response.data.data as ProductSizeCategory[];
+}
+
+export const productSizeCategoriesQueryOptions = queryOptions({
+  queryKey: ["product-size-categories"],
+  queryFn: getProductSizeCategories,
+  staleTime: 10 * 60 * 1000,
+});
+
+export function useProductSizeCategories() {
+  return useQuery(productSizeCategoriesQueryOptions);
 }

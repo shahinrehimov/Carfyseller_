@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
 import { searchCatalog, useAttachProductVariant } from "@/lib/queries/products";
 import type { CatalogSearchItem } from "@/lib/queries/products";
-import { useCountries, useCities } from "@/lib/queries/countries";
+import { useCountries, useCities, useProductSizeCategories } from "@/lib/queries/countries";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -53,6 +53,8 @@ interface AttachFormState {
   discount_end_at: string;
   country_id: string;
   city_id: string;
+  size_category_id: string;
+  weight_gram: string;
 }
 
 const defaultAttachForm: AttachFormState = {
@@ -65,6 +67,8 @@ const defaultAttachForm: AttachFormState = {
   discount_end_at: "",
   country_id: "",
   city_id: "",
+  size_category_id: "",
+  weight_gram: "",
 };
 
 function AttachForm({
@@ -86,6 +90,7 @@ function AttachForm({
   const { data: cities } = useCities(
     form.country_id ? Number(form.country_id) : null,
   );
+  const { data: sizeCategories } = useProductSizeCategories();
 
   const set = (field: keyof AttachFormState, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -110,6 +115,8 @@ function AttachForm({
         fd.append("discount_end_at", form.discount_end_at);
     }
     if (form.city_id) fd.append("city_id", form.city_id);
+    if (form.size_category_id) fd.append("size_category", form.size_category_id);
+    if (form.weight_gram) fd.append("weight_gram", form.weight_gram);
 
     try {
       await attachMutation.mutateAsync({
@@ -199,6 +206,36 @@ function AttachForm({
               </option>
             ))}
           </select>
+        </div>
+      </div>
+
+      {/* Size Category & Weight */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label>{t("size_category")}</Label>
+          <select
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={form.size_category_id}
+            onChange={(e) => set("size_category_id", e.target.value)}
+          >
+            <option value="">{t("select_size_category")}</option>
+            {sizeCategories?.map((sc) => (
+              <option key={sc.id} value={sc.id}>
+                {sc.title}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="attach-weight">{t("weight_gram")}</Label>
+          <Input
+            id="attach-weight"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.weight_gram}
+            onChange={(e) => set("weight_gram", e.target.value)}
+          />
         </div>
       </div>
 
@@ -311,12 +348,15 @@ function PricingModal({
       : "",
     country_id: item.city?.country_id?.toString() || "",
     city_id: item.city?.id?.toString() || "",
+    size_category_id: item.size_category?.id?.toString() || "",
+    weight_gram: item.weight_gram?.toString() || "",
   });
 
   const { data: countries } = useCountries();
   const { data: cities } = useCities(
     form.country_id ? Number(form.country_id) : null,
   );
+  const { data: sizeCategories } = useProductSizeCategories();
 
   const set = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -338,6 +378,8 @@ function PricingModal({
           fd.append("discount_end_at", form.discount_end_at);
       }
       if (form.city_id) fd.append("city_id", form.city_id);
+      if (form.size_category_id) fd.append("size_category", form.size_category_id);
+      if (form.weight_gram) fd.append("weight_gram", form.weight_gram);
 
       await controlPrivateApi.post(
         `/company-product-variants/update/${item.id}`,
@@ -416,6 +458,35 @@ function PricingModal({
               </option>
             ))}
           </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label>{t("size_category")}</Label>
+          <select
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={form.size_category_id}
+            onChange={(e) => set("size_category_id", e.target.value)}
+          >
+            <option value="">{t("select_size_category")}</option>
+            {sizeCategories?.map((sc) => (
+              <option key={sc.id} value={sc.id}>
+                {sc.title}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="p-weight">{t("weight_gram")}</Label>
+          <Input
+            id="p-weight"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.weight_gram}
+            onChange={(e) => set("weight_gram", e.target.value)}
+          />
         </div>
       </div>
 
