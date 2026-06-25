@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ type AddStep = "search" | "attach" | "form";
 function AddProductPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const langs = useTranslationStore((state) => state.langs);
 
   // Search step state
@@ -183,6 +185,7 @@ function AddProductPage() {
         }
       );
       toast.success(res.data.message || t("variant_attached_successfully"));
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
       navigate({ to: "/products" });
     } catch (error: any) {
       toast.error(error?.response?.data?.message || t("error_saving"));
@@ -805,6 +808,7 @@ function AddProductPage() {
       });
 
       toast.success(res.data.message);
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
       navigate({ to: "/products" });
     } catch (error: any) {
       toast.error(error?.response?.data?.message || t("error_saving_product"));
