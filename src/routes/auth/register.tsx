@@ -171,13 +171,20 @@ function RouteComponent() {
     },
   });
 
+  const inputBorderTone = isDark
+    ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
+    : "border-gray-300 bg-white text-black placeholder:text-gray-500";
+  const inputClassName = `w-full min-w-0 rounded-md border ${inputBorderTone} focus:border-primary px-3 py-2.5 sm:px-4 sm:py-3 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/20`;
+  const selectClassName = `${inputClassName} disabled:opacity-50`;
+  const passwordInputClassName = `${inputClassName} pr-10 sm:pr-12`;
+
   return (
-    <div className="h-dvh overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center p-4 py-8">
-        <div className="w-full max-w-6xl">
+    <div className="h-dvh overflow-x-hidden overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center px-3 py-6 sm:px-4 sm:py-8">
+        <div className="w-full min-w-0 max-w-6xl">
         {/* Logo */}
-        <div className="mb-8 flex justify-center">
-          <img src="/logo.svg" alt="Logo" className="h-16 w-auto" />
+        <div className="mb-6 flex justify-center sm:mb-8">
+          <img src="/logo.svg" alt="Logo" className="h-12 w-auto sm:h-16" />
         </div>
 
         {/* Form Container with Border */}
@@ -186,10 +193,10 @@ function RouteComponent() {
             isDark
               ? "border-gray-700 bg-gray-800/50"
               : "border-gray-200 bg-white"
-          } p-8 shadow-sm`}
+          } p-4 shadow-sm sm:p-6 md:p-8`}
         >
           <h1
-            className={`mb-6 text-center text-2xl font-semibold ${
+            className={`mb-4 text-center text-xl font-semibold sm:mb-6 sm:text-2xl ${
               isDark ? "text-white" : "text-gray-900"
             }`}
           >
@@ -197,14 +204,14 @@ function RouteComponent() {
           </h1>
 
           <form
-            className="space-y-6"
+            className="space-y-4 sm:space-y-6"
             onSubmit={form.handleSubmit((formData) => {
               if (register.isPending) return;
               register.mutate(formData);
             })}
           >
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div>
+            <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+              <div className="min-w-0">
                 <h2
                   className={`mb-4 text-lg font-medium ${
                     isDark ? "text-gray-200" : "text-gray-800"
@@ -218,11 +225,7 @@ function RouteComponent() {
                     <input
                       type="text"
                       placeholder={`${t("company_name")} *`}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={inputClassName}
                       {...form.register("company_title")}
                     />
                     {form.formState.errors.company_title && (
@@ -236,11 +239,7 @@ function RouteComponent() {
                     <input
                       type="text"
                       placeholder={`${t("voen")} *`}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={inputClassName}
                       {...form.register("voen")}
                     />
                     {form.formState.errors.voen && (
@@ -256,14 +255,14 @@ function RouteComponent() {
                       control={form.control}
                       render={({ field }) => (
                         <div
-                          className={`flex w-full rounded-md border ${
+                          className={`flex w-full min-w-0 rounded-md border ${
                             isDark
                               ? "border-gray-600 bg-gray-800"
                               : "border-gray-300 bg-white"
-                          } focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20`}
+                          } focus-within:border-primary focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary/20`}
                         >
                           <span
-                            className={`inline-flex items-center border-r px-4 py-3 text-sm select-none ${
+                            className={`inline-flex shrink-0 items-center border-r px-2.5 py-2.5 text-sm select-none sm:px-3 sm:py-3 ${
                               isDark
                                 ? "border-gray-600 text-gray-400"
                                 : "border-gray-300 text-gray-500"
@@ -275,7 +274,7 @@ function RouteComponent() {
                             type="text"
                             inputMode="numeric"
                             placeholder="501234567"
-                            className={`flex-1 bg-transparent px-4 py-3 outline-none ${
+                            className={`min-w-0 flex-1 bg-transparent px-2.5 py-2.5 outline-none sm:px-3 sm:py-3 ${
                               isDark
                                 ? "text-white placeholder:text-gray-400"
                                 : "text-black placeholder:text-gray-500"
@@ -302,11 +301,7 @@ function RouteComponent() {
                     <input
                       type="email"
                       placeholder={`${t("email")} *`}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={inputClassName}
                       {...form.register("company_email")}
                     />
                     {form.formState.errors.company_email && (
@@ -320,11 +315,7 @@ function RouteComponent() {
                     <input
                       type="text"
                       placeholder={`${t("address")} *`}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={inputClassName}
                       {...form.register("company_address")}
                     />
                     {form.formState.errors.company_address && (
@@ -337,11 +328,7 @@ function RouteComponent() {
                   {/* Country */}
                   <div>
                     <select
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white"
-                          : "border-gray-300 bg-white text-black"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={selectClassName}
                       value={selectedCountryId ?? ""}
                       onChange={(e) => {
                         const val = e.target.value ? Number(e.target.value) : null;
@@ -359,11 +346,7 @@ function RouteComponent() {
                   {/* City */}
                   <div>
                     <select
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white"
-                          : "border-gray-300 bg-white text-black"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50`}
+                      className={selectClassName}
                       disabled={!selectedCountryId}
                       {...form.register("city_id", { valueAsNumber: true })}
                     >
@@ -384,11 +367,11 @@ function RouteComponent() {
                     <button
                       type="button"
                       onClick={() => setIsMapOpen(true)}
-                      className={`flex w-full items-center justify-center gap-2 rounded-md border ${
+                      className={`flex w-full min-w-0 items-center justify-center gap-2 rounded-md border ${
                         isDark
                           ? "border-gray-600 bg-gray-800 text-white hover:bg-gray-700"
                           : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                      } px-4 py-3 transition-colors`}
+                      } px-3 py-2.5 transition-colors sm:px-4 sm:py-3`}
                     >
                       <MapPin className="h-5 w-5" />
                       {selectedLocation.address
@@ -397,7 +380,7 @@ function RouteComponent() {
                     </button>
                     {selectedLocation.address && (
                       <p
-                        className={`mt-2 text-sm ${
+                        className={`mt-2 break-words text-sm ${
                           isDark ? "text-gray-400" : "text-gray-600"
                         }`}
                       >
@@ -410,11 +393,7 @@ function RouteComponent() {
                     <textarea
                       placeholder={`${t("company_info")} (${t("optional")})`}
                       rows={3}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={inputClassName}
                       {...form.register("company_info")}
                     />
                   </div>
@@ -423,11 +402,7 @@ function RouteComponent() {
                     <input
                       type="url"
                       placeholder={`${t("website")} (${t("optional")})`}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={inputClassName}
                       {...form.register("website")}
                     />
                     {form.formState.errors.website && (
@@ -439,7 +414,7 @@ function RouteComponent() {
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <h2
                   className={`mb-4 text-lg font-medium ${
                     isDark ? "text-gray-200" : "text-gray-800"
@@ -453,11 +428,7 @@ function RouteComponent() {
                     <input
                       type="text"
                       placeholder={`${t("name")} *`}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={inputClassName}
                       {...form.register("name")}
                     />
                     {form.formState.errors.name && (
@@ -471,11 +442,7 @@ function RouteComponent() {
                     <input
                       type="text"
                       placeholder={`${t("surname")} *`}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={inputClassName}
                       {...form.register("surname")}
                     />
                     {form.formState.errors.surname && (
@@ -489,11 +456,7 @@ function RouteComponent() {
                     <input
                       type="text"
                       placeholder={`${t("username")} *`}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={inputClassName}
                       {...form.register("username")}
                     />
                     {form.formState.errors.username && (
@@ -507,11 +470,7 @@ function RouteComponent() {
                     <input
                       type="email"
                       placeholder={`${t("email")} *`}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                      className={inputClassName}
                       {...form.register("admin_email")}
                     />
                     {form.formState.errors.admin_email && (
@@ -526,11 +485,7 @@ function RouteComponent() {
                       <input
                         type={showPassword ? "text" : "password"}
                         placeholder={`${t("password")} *`}
-                        className={`w-full rounded-md border ${
-                          isDark
-                            ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                            : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                        } focus:border-primary px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                        className={passwordInputClassName}
                         {...form.register("password")}
                       />
                       <button
@@ -561,11 +516,7 @@ function RouteComponent() {
                       <input
                         type={showPasswordConfirm ? "text" : "password"}
                         placeholder={`${t("confirm_password")} *`}
-                        className={`w-full rounded-md border ${
-                          isDark
-                            ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                            : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                        } focus:border-primary px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                        className={passwordInputClassName}
                         {...form.register("password_confirmation")}
                       />
                       <button
