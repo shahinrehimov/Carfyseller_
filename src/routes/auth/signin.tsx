@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -23,16 +23,6 @@ export const Route = createFileRoute("/auth/signin")({
   validateSearch: zodValidator(loginPageSchema),
 });
 
-const LoginFormSchema = z.object({
-  username: z
-    .string({ message: "Email or username is required" })
-    .min(1, "Email or username is required"),
-  password: z
-    .string({ message: "Password is required" })
-    .min(1, "Password is required"),
-});
-type LoginFormSchema = z.infer<typeof LoginFormSchema>;
-
 function RouteComponent() {
   const searchParams = Route.useSearch();
   const { theme } = useTheme();
@@ -41,6 +31,16 @@ function RouteComponent() {
   const redirect = useRedirectBack(searchParams.redirect);
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+
+  const LoginFormSchema = z.object({
+    username: z
+      .string({ message: t("required_field") })
+      .min(1, t("required_field")),
+    password: z
+      .string({ message: t("required_field") })
+      .min(1, t("required_field")),
+  });
+  type LoginFormSchema = z.infer<typeof LoginFormSchema>;
 
   const form = useForm({
     resolver: zodResolver(LoginFormSchema),

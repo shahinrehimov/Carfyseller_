@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Upload, X, Search, Link2, Plus } from "lucide-react";
+import { ArrowLeft, Loader2, Upload, X, Search, Link2, Plus, ImageIcon } from "lucide-react";
 import { useTranslationStore } from "@/store/translations";
 import { FileInput } from "@/components/ui/file-input";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -854,32 +854,58 @@ function AddProductPage() {
             <div className="space-y-2">
               <p className="text-sm font-medium">{t("search_results")}</p>
               <div className="rounded-md border divide-y">
-                {catalogResults.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{item.title || item.slug}</span>
-                        {item.already_attached && (
-                          <Badge variant="secondary">{t("already_attached")}</Badge>
+                {catalogResults.map((item) => {
+                  const imageUrl = item.main_image || item.product?.main_image;
+                  return (
+                    <div key={item.id} className="flex items-center gap-3 p-4">
+                      <div className="shrink-0">
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={item.title || item.slug || ""}
+                            className="h-12 w-12 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded bg-muted">
+                            <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                          </div>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                        {item.oem_code && <span>OEM: {item.oem_code}</span>}
-                        {item.brand_models?.length > 0 && <span>{item.brand_models.map((m: any) => m.title).join(", ")}</span>}
-                        {item.year && <span>{item.year}</span>}
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{item.title || item.slug}</span>
+                          {item.already_attached && (
+                            <Badge variant="secondary">{t("already_attached")}</Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                          <span>OEM: {item.oem_code || "—"}</span>
+                          {item.product?.main_category?.title && (
+                            <span>{item.product.main_category.title}</span>
+                          )}
+                          {item.product?.categories
+                            ?.filter((cat) => cat.id !== item.product?.main_category?.id)
+                            .map((cat) => (
+                              <span key={cat.id}>{cat.title}</span>
+                            ))}
+                          {item.brand_models?.length > 0 && (
+                            <span>{item.brand_models.map((m: any) => m.title).join(", ")}</span>
+                          )}
+                          {item.year && <span>{item.year}</span>}
+                        </div>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={item.already_attached}
+                        onClick={() => !item.already_attached && handleAttachClick(item)}
+                      >
+                        <Link2 className="mr-2 h-3 w-3" />
+                        {t("attach")}
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={item.already_attached}
-                      onClick={() => !item.already_attached && handleAttachClick(item)}
-                    >
-                      <Link2 className="mr-2 h-3 w-3" />
-                      {t("attach")}
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

@@ -1,7 +1,11 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  Link,
+  createFileRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
@@ -11,9 +15,8 @@ import { useState } from "react";
 import { controlApi } from "@/lib/axios/controlApi";
 import { useTheme } from "@/components/themes/provider";
 import { useTranslation } from "@/lib/utils/translationLoader";
-import { Link } from "@tanstack/react-router";
 import LocationPickerModal from "@/components/ui/location-picker-modal";
-import { useCountries, useCities } from "@/lib/queries/countries";
+import { useCities, useCountries } from "@/lib/queries/countries";
 
 const registerPageSchema = z.object({
   redirect: z.string().optional(),
@@ -24,43 +27,57 @@ export const Route = createFileRoute("/auth/register")({
   validateSearch: zodValidator(registerPageSchema),
 });
 
-const RegisterFormSchema = z
-  .object({
-    // Company fields
-    voen: z.string().min(1, "VOEN is required"),
-    company_phone: z.string().min(1, "Company phone is required"),
-    company_email: z.string().email("Invalid email format"),
-    latitude: z.number(),
-    longitude: z.number(),
-    city_id: z.number({ required_error: "City is required" }).min(1, "City is required"),
-    website: z.string().url("Invalid website URL").optional().or(z.literal("")),
-
-    // Company translations (main language)
-    company_title: z.string().min(1, "Company name is required"),
-    company_info: z.string().optional(),
-    company_address: z.string().min(1, "Company address is required"),
-
-    // Admin fields
-    username: z.string().min(3, "Username must be at least 3 characters"),
-    admin_email: z.string().email("Invalid email format"),
-    name: z.string().min(1, "First name is required"),
-    surname: z.string().min(1, "Last name is required"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    password_confirmation: z
-      .string()
-      .min(6, "Password confirmation is required"),
-  })
-  .refine((data) => data.password === data.password_confirmation, {
-    message: "Passwords don't match",
-    path: ["password_confirmation"],
-  });
-
-type RegisterFormSchema = z.infer<typeof RegisterFormSchema>;
-
 function RouteComponent() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const { t } = useTranslation();
+
+  const RegisterFormSchema = z
+    .object({
+      voen: z.string().min(1, t("required_field")),
+      company_phone: z
+        .string()
+        .min(1, t("required_field"))
+        .regex(/^\+994\d{9}$/, t("phone_format_error")),
+      company_email: z
+        .string()
+        .min(1, t("required_field"))
+        .email(t("invalid_email")),
+      latitude: z.number(),
+      longitude: z.number(),
+      city_id: z
+        .number({ required_error: t("required_field") })
+        .min(1, t("required_field")),
+      website: z
+        .string()
+        .url(t("invalid_url"))
+        .optional()
+        .or(z.literal("")),
+
+      company_title: z.string().min(1, t("required_field")),
+      company_info: z.string().optional(),
+      company_address: z.string().min(1, t("required_field")),
+
+      username: z.string().min(3, t("username_is_required")),
+      admin_email: z
+        .string()
+        .min(1, t("required_field"))
+        .email(t("invalid_email")),
+      name: z.string().min(1, t("required_field")),
+      surname: z.string().min(1, t("required_field")),
+      password: z
+        .string({ message: t("required_field") })
+        .min(6, t("password_min_length")),
+      password_confirmation: z
+        .string({ message: t("required_field") })
+        .min(1, t("required_field")),
+    })
+    .refine((data) => data.password === data.password_confirmation, {
+      message: t("passwords_must_match"),
+      path: ["password_confirmation"],
+    });
+
+  type RegisterFormSchema = z.infer<typeof RegisterFormSchema>;
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
@@ -83,6 +100,7 @@ function RouteComponent() {
     defaultValues: {
       latitude: 40.4093,
       longitude: 49.8671,
+      company_phone: "",
     },
   });
 
@@ -154,8 +172,9 @@ function RouteComponent() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-6xl">
+    <div className="h-dvh overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4 py-8">
+        <div className="w-full max-w-6xl">
         {/* Logo */}
         <div className="mb-8 flex justify-center">
           <img src="/logo.svg" alt="Logo" className="h-16 w-auto" />
@@ -232,15 +251,45 @@ function RouteComponent() {
                   </div>
 
                   <div>
-                    <input
-                      type="text"
-                      placeholder={`${t("phone")} *`}
-                      className={`w-full rounded-md border ${
-                        isDark
-                          ? "border-gray-600 bg-gray-800 text-white placeholder:text-gray-400"
-                          : "border-gray-300 bg-white text-black placeholder:text-gray-500"
-                      } focus:border-primary px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20`}
-                      {...form.register("company_phone")}
+                    <Controller
+                      name="company_phone"
+                      control={form.control}
+                      render={({ field }) => (
+                        <div
+                          className={`flex w-full rounded-md border ${
+                            isDark
+                              ? "border-gray-600 bg-gray-800"
+                              : "border-gray-300 bg-white"
+                          } focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20`}
+                        >
+                          <span
+                            className={`inline-flex items-center border-r px-4 py-3 text-sm select-none ${
+                              isDark
+                                ? "border-gray-600 text-gray-400"
+                                : "border-gray-300 text-gray-500"
+                            }`}
+                          >
+                            +994
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="501234567"
+                            className={`flex-1 bg-transparent px-4 py-3 outline-none ${
+                              isDark
+                                ? "text-white placeholder:text-gray-400"
+                                : "text-black placeholder:text-gray-500"
+                            }`}
+                            value={field.value.replace(/^\+994/, "")}
+                            onChange={(e) => {
+                              const digits = e.target.value
+                                .replace(/\D/g, "")
+                                .slice(0, 9);
+                              field.onChange(digits ? `+994${digits}` : "");
+                            }}
+                          />
+                        </div>
+                      )}
                     />
                     {form.formState.errors.company_phone && (
                       <p className="mt-1 text-sm text-red-500">
@@ -587,6 +636,7 @@ function RouteComponent() {
           initialLng={selectedLocation.lng}
           title={t("select_location")}
         />
+        </div>
       </div>
     </div>
   );

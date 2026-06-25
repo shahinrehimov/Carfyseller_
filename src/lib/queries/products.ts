@@ -148,6 +148,18 @@ export interface CatalogSearchItem {
     hover_image: string | null;
     is_set: boolean;
     is_active: boolean;
+    main_category: {
+      id: number;
+      uuid: string;
+      slug: string;
+      title: string;
+    } | null;
+    categories: Array<{
+      id: number;
+      uuid: string;
+      slug: string;
+      title: string;
+    }>;
     created_date: string;
   } | null;
   is_set: boolean;
