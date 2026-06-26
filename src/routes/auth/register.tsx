@@ -184,7 +184,9 @@ function RouteComponent() {
         <div className="w-full min-w-0 max-w-6xl">
         {/* Logo */}
         <div className="mb-6 flex justify-center sm:mb-8">
-          <img src="/logo.svg" alt="Logo" className="h-12 w-auto sm:h-16" />
+          <Link to="/auth/signin" className="cursor-pointer">
+            <img src="/logo.svg" alt="Logo" className="h-12 w-auto sm:h-16" />
+          </Link>
         </div>
 
         {/* Form Container with Border */}

@@ -133,11 +133,13 @@ export function Sidebar({
           )}
         >
           {(!isCollapsed || isMobile) && (
-            <img
-              src="/logo.svg"
-              alt="logo"
-              className="w-30 brightness-0 invert "
-            />
+            <Link to="/" className="cursor-pointer">
+              <img
+                src="/logo.svg"
+                alt="logo"
+                className="w-30 brightness-0 invert "
+              />
+            </Link>
           )}
 
           <button
