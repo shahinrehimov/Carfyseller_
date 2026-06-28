@@ -29,12 +29,12 @@ axios.interceptors.request.use(
   async (
     config: InternalAxiosRequestConfig,
   ): Promise<InternalAxiosRequestConfig> => {
-    const token = useAuthStore.getState().token;
+    config.headers.set("Accept-Language", getLanguage());
+    config.headers.set("Token", app_token);
 
+    const token = useAuthStore.getState().token;
     if (token) {
       config.headers.set("Authorization", `Bearer ${token}`);
-      config.headers.set("Accept-Language", getLanguage());
-      config.headers.set("Token", app_token);
     }
 
     return config;
