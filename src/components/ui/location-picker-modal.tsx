@@ -87,6 +87,11 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     setIsClient(true);
   }, []);
 
+  // Sync position when the incoming coordinates change (e.g. after profile loads)
+  useEffect(() => {
+    setPosition([initialLat, initialLng]);
+  }, [initialLat, initialLng]);
+
   // Reset client state when modal opens to force re-render
   useEffect(() => {
     if (isOpen) {
