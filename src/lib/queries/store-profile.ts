@@ -40,6 +40,8 @@ export interface StoreProfile {
   city: City | null;
   latitude: string | null;
   longitude: string | null;
+  notification_phone: string | null;
+  notification_phone_verified_at: string | null;
   verified_at: string | null;
   is_active: boolean;
   logo: string | null;
@@ -156,6 +158,29 @@ async function updateWorkingHours(data: UpdateWorkingHoursRequest) {
   return response.data as UpdateWorkingHoursResponse;
 }
 
+async function sendNotificationPhoneOtp(phone: string) {
+  const response = await controlPrivateApi.post(
+    "/store-profile/notification-phone/send-otp",
+    { phone },
+  );
+  return response.data;
+}
+
+async function verifyNotificationPhone(data: { phone: string; otp: number }) {
+  const response = await controlPrivateApi.post(
+    "/store-profile/notification-phone/verify",
+    data,
+  );
+  return response.data;
+}
+
+async function deleteNotificationPhone() {
+  const response = await controlPrivateApi.delete(
+    "/store-profile/notification-phone",
+  );
+  return response.data;
+}
+
 // ─── Query options ─────────────────────────────────────────────────────────────
 
 export const storeProfileQueryOptions = () =>
@@ -209,6 +234,34 @@ export function useUpdateWorkingHours() {
 
   return useMutation({
     mutationFn: updateWorkingHours,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["store-profile"] });
+    },
+  });
+}
+
+export function useSendNotificationPhoneOtp() {
+  return useMutation({
+    mutationFn: sendNotificationPhoneOtp,
+  });
+}
+
+export function useVerifyNotificationPhone() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: verifyNotificationPhone,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["store-profile"] });
+    },
+  });
+}
+
+export function useDeleteNotificationPhone() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteNotificationPhone,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["store-profile"] });
     },

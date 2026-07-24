@@ -4,7 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Trash2, Star, MapPin } from "lucide-react";
+import { Loader2, Trash2, Star, MapPin, BellRing, CheckCircle2 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,10 @@ import {
   useDeleteStoreLogo,
   useDeleteStoreBanner,
   useUpdateWorkingHours,
+  useSendNotificationPhoneOtp,
+  useVerifyNotificationPhone,
+  useDeleteNotificationPhone,
+  type StoreProfile,
   type WorkingHour,
 } from "@/lib/queries/store-profile";
 
@@ -323,6 +327,7 @@ function StoreProfilePage() {
         <TabsList>
           <TabsTrigger value="info">{t("profile_info")}</TabsTrigger>
           <TabsTrigger value="hours">{t("working_hours")}</TabsTrigger>
+          <TabsTrigger value="notifications">Bildiriş nömrəsi</TabsTrigger>
         </TabsList>
 
         {/* ── Tab: Profile info ─────────────────────────────────────────── */}
@@ -722,6 +727,11 @@ function StoreProfilePage() {
             </div>
           </form>
         </TabsContent>
+
+        {/* ── Tab: Notification phone ───────────────────────────────────── */}
+        <TabsContent value="notifications">
+          {profile && <NotificationPhoneTab profile={profile} />}
+        </TabsContent>
       </Tabs>
 
       <LocationPickerModal
@@ -732,6 +742,238 @@ function StoreProfilePage() {
         initialLng={selectedLocation.lng}
         title={t("select_location")}
       />
+    </div>
+  );
+}
+
+// ─── Notification phone tab ─────────────────────────────────────────────────────
+
+function NotificationPhoneTab({ profile }: { profile: StoreProfile }) {
+  const isVerified = Boolean(
+    profile.notification_phone && profile.notification_phone_verified_at,
+  );
+
+  const sendOtp = useSendNotificationPhoneOtp();
+  const verify = useVerifyNotificationPhone();
+  const remove = useDeleteNotificationPhone();
+
+  // Local 9-digit part; stored value is "994XXXXXXXXX".
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  // Show the entry form even when a verified number exists (to change it).
+  const [editing, setEditing] = useState(false);
+
+  const fullPhone = `994${phone}`;
+  const storedLocal = profile.notification_phone?.replace(/^994/, "") ?? "";
+
+  const handleSendOtp = () => {
+    if (phone.length !== 9) {
+      toast.error("Nömrə 9 rəqəm olmalıdır");
+      return;
+    }
+    sendOtp.mutate(fullPhone, {
+      onSuccess: () => {
+        setOtpSent(true);
+        toast.success("Təsdiq kodu göndərildi");
+      },
+      onError: (err: any) =>
+        toast.error(err?.response?.data?.message ?? "Xəta baş verdi"),
+    });
+  };
+
+  const handleVerify = () => {
+    if (otp.length !== 4) {
+      toast.error("Kod 4 rəqəm olmalıdır");
+      return;
+    }
+    verify.mutate(
+      { phone: fullPhone, otp: Number(otp) },
+      {
+        onSuccess: () => {
+          setOtpSent(false);
+          setEditing(false);
+          setPhone("");
+          setOtp("");
+          toast.success("Bildiriş nömrəsi təsdiqləndi");
+        },
+        onError: (err: any) =>
+          toast.error(err?.response?.data?.message ?? "Kod yanlışdır"),
+      },
+    );
+  };
+
+  const handleRemove = () => {
+    remove.mutate(undefined, {
+      onSuccess: () => {
+        setEditing(false);
+        setOtpSent(false);
+        toast.success("Bildiriş nömrəsi silindi");
+      },
+      onError: (err: any) =>
+        toast.error(err?.response?.data?.message ?? "Xəta baş verdi"),
+    });
+  };
+
+  const showForm = !isVerified || editing;
+
+  return (
+    <div className="mt-6 max-w-xl space-y-6">
+      <div className="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <BellRing className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          Mağazanıza yeni sifariş gələndə bu nömrəyə SMS bildiriş göndərəcəyik.
+          Nömrə SMS kodu ilə təsdiqlənməlidir.
+        </p>
+      </div>
+
+      {/* Verified state */}
+      {isVerified && !editing && (
+        <div className="flex flex-col gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900/40 dark:bg-green-900/20 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <div>
+              <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                +994 {storedLocal}
+              </p>
+              <p className="text-xs text-green-700/80 dark:text-green-400/80">
+                Təsdiqlənib
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditing(true);
+                setPhone("");
+                setOtp("");
+                setOtpSent(false);
+              }}
+            >
+              Dəyiş
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-red-500 hover:text-red-600"
+              onClick={handleRemove}
+              disabled={remove.isPending}
+            >
+              {remove.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Entry form */}
+      {showForm && (
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Bildiriş nömrəsi</Label>
+            <div className="flex">
+              <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground select-none">
+                +994
+              </span>
+              <Input
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value.replace(/\D/g, "").slice(0, 9));
+                  setOtpSent(false);
+                  setOtp("");
+                }}
+                inputMode="numeric"
+                placeholder="501234567"
+                className="rounded-l-none"
+                disabled={otpSent}
+              />
+            </div>
+          </div>
+
+          {!otpSent ? (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={handleSendOtp}
+                disabled={sendOtp.isPending || phone.length !== 9}
+                className="min-w-[130px]"
+              >
+                {sendOtp.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Göndərilir
+                  </>
+                ) : (
+                  "Kod göndər"
+                )}
+              </Button>
+              {editing && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditing(false);
+                    setPhone("");
+                    setOtp("");
+                  }}
+                >
+                  Ləğv et
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>Təsdiq kodu</Label>
+                <Input
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))
+                  }
+                  inputMode="numeric"
+                  placeholder="1234"
+                  className="w-40 tracking-[0.4em]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  +994 {phone} nömrəsinə göndərilən 4 rəqəmli kodu daxil edin.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={handleVerify}
+                  disabled={verify.isPending || otp.length !== 4}
+                  className="min-w-[130px]"
+                >
+                  {verify.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Təsdiqlənir
+                    </>
+                  ) : (
+                    "Təsdiqlə"
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleSendOtp}
+                  disabled={sendOtp.isPending}
+                >
+                  Yenidən göndər
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
