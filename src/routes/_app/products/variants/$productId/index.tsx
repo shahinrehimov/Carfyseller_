@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import Modal from "@/components/ui/modal";
 import DeleteModal from "@/components/ui/delete-modal";
+import { FitmentSummary } from "@/components/fitment/FitmentSummary";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -699,8 +700,7 @@ function CatalogModal({
                 </p>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                   {item.oem_code && <span>OEM: {item.oem_code}</span>}
-                  {item.brand_models?.length > 0 && <span>{item.brand_models.map((m: any) => m.title).join(", ")}</span>}
-                  {item.year && <span>{item.year}</span>}
+                  <FitmentSummary fitments={item.fitments} isUniversal={item.is_universal} />
                 </div>
                 {item.already_attached && (
                   <div className="mt-1 flex items-center gap-1 text-xs text-green-600 dark:text-green-400">

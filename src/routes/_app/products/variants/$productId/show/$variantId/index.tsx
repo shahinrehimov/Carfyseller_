@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
+import { FitmentSummary } from "@/components/fitment/FitmentSummary";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -275,16 +276,15 @@ function ShowProductVariantPage() {
                   <TableCell>{variant.oem_code}</TableCell>
                 </TableRow>
               )}
-              {variant?.year && (
+              {variant?.fitments?.length > 0 && (
                 <TableRow>
-                  <TableCell className="font-medium">{t("year")}</TableCell>
-                  <TableCell>{variant.year}</TableCell>
-                </TableRow>
-              )}
-              {variant?.brand_models?.length > 0 && (
-                <TableRow>
-                  <TableCell className="font-medium">{t("brand_model")}</TableCell>
-                  <TableCell>{variant.brand_models.map((m: any) => m.title).join(", ")}</TableCell>
+                  <TableCell className="font-medium">{t("fitment") || "Uyğunluq"}</TableCell>
+                  <TableCell>
+                    <FitmentSummary
+                      fitments={variant.fitments}
+                      isUniversal={variant.is_universal}
+                    />
+                  </TableCell>
                 </TableRow>
               )}
               {variant?.product && (
