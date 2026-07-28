@@ -104,6 +104,11 @@ function buildDefaultHours(existing: WorkingHour[]): WorkingHour[] {
   });
 }
 
+function toLocalPhone(phone: string | null | undefined): string {
+  if (!phone) return "";
+  return phone.replace(/^(\+994|994)/, "").replace(/\D/g, "").slice(0, 9);
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 function StoreProfilePage() {
@@ -183,7 +188,7 @@ function StoreProfilePage() {
 
     profileForm.reset({
       translations: translationsWithDefaults,
-      phone: profile.phone ?? "",
+      phone: toLocalPhone(profile.phone),
       email: profile.email ?? "",
       website: profile.website ?? "",
       city_id: profile.city_id ?? null,
@@ -765,7 +770,7 @@ function NotificationPhoneTab({ profile }: { profile: StoreProfile }) {
   const [editing, setEditing] = useState(false);
 
   const fullPhone = `994${phone}`;
-  const storedLocal = profile.notification_phone?.replace(/^994/, "") ?? "";
+  const storedLocal = toLocalPhone(profile.notification_phone);
 
   const handleSendOtp = () => {
     if (phone.length !== 9) {

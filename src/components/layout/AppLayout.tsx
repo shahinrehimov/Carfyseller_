@@ -57,7 +57,10 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header pageTitle="Dashboard" />
 
-        <main className="flex-1 overflow-auto p-6">
+        <main
+          data-app-scroll-container
+          className="flex-1 overflow-auto overscroll-y-contain p-6"
+        >
           {children || <Outlet />}
         </main>
       </div>

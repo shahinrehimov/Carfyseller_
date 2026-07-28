@@ -162,7 +162,7 @@ export function Sidebar({
               ? "opacity-0 pointer-events-none transform translate-y-[-20px]"
               : "opacity-100 pointer-events-auto transform translate-y-0"),
           isMobile &&
-            "absolute top-[20px] z-50 left-0 right-0 w-full h-[calc(100vh-60px)] mx-auto bg-gray-200 dark:bg-[#1A1B23]",
+            "absolute top-full z-50 left-0 right-0 w-full h-[calc(100vh-60px)] mx-auto bg-gray-200 dark:bg-[#1A1B23]",
         )}
       >
         <nav
