@@ -4,6 +4,13 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  FitmentEditor,
+  appendFitments,
+  validateFitments,
+  type Fitment,
+} from "@/components/fitment/FitmentEditor";
+import { FitmentSummary } from "@/components/fitment/FitmentSummary";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
 import { toast } from "sonner";
@@ -264,7 +271,6 @@ function AddProductPage() {
       otherwise: (schema) => schema.notRequired(),
     }),
     price: Yup.number().notRequired(),
-    brand_id: Yup.number().required(t("required_field")),
     categories: Yup.array().of(Yup.number()).required(t("required_field")),
     main_category_id: Yup.number().required(t("required_field")),
     stock: Yup.number().notRequired(),
@@ -290,11 +296,6 @@ function AddProductPage() {
       otherwise: (schema) => schema.notRequired(),
     }),
     oem_code: Yup.string().max(100).notRequired(),
-    year: Yup.number()
-      .transform((value, originalValue) =>
-        originalValue === "" ? undefined : value,
-      )
-      .notRequired(),
     city_id: Yup.number().notRequired(),
     size_category: Yup.string().required(t("required_field")),
     weight_gram: Yup.number()
@@ -320,14 +321,12 @@ function AddProductPage() {
       .notRequired(),
   });
 
-  type SelectedModel = { id: number; title: string; brand_id: number; brand_title: string };
 
   // State
   const [brands, setBrands] = useState<any[]>([]);
-  const [brandModels, setBrandModels] = useState<any[]>([]);
-  const [brandModelsLoading, setBrandModelsLoading] = useState(false);
-  const [selectedModels, setSelectedModels] = useState<SelectedModel[]>([]);
-  const [modelSelectValue, setModelSelectValue] = useState<string>("");
+  const [fitments, setFitments] = useState<Fitment[]>([]);
+  const [isUniversal, setIsUniversal] = useState(false);
+  const [fitmentError, setFitmentError] = useState<string | null>(null);
   const [flattenedCategories, setFlattenedCategories] = useState<any[]>([]);
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
   const [sizeCategories, setSizeCategories] = useState<any[]>([]);
@@ -368,7 +367,6 @@ function AddProductPage() {
       is_set: false,
       sets: [],
       price: 0,
-      brand_id: undefined,
       oem_code: "",
       categories: [],
       main_category_id: undefined,
@@ -378,7 +376,6 @@ function AddProductPage() {
       discount_type: "",
       discount_start_at: undefined,
       discount_end_at: undefined,
-      year: "" as any,
       city_id: undefined,
       size_category: "",
       weight_gram: "" as any,
@@ -390,7 +387,6 @@ function AddProductPage() {
   const isSet = watch("is_set");
   const hasDiscount = watch("has_discount");
   const selectedCategories = watch("categories");
-  const selectedBrandId = watch("brand_id");
   const options = watch("options");
   const sets = watch("sets");
 
@@ -400,30 +396,6 @@ function AddProductPage() {
       setValue("sets", [{ product_variant_id: "", quantity: "" }]);
     }
   }, [isSet, sets, setValue]);
-
-  // Fetch brand models when brand changes
-  useEffect(() => {
-    if (!selectedBrandId) {
-      setBrandModels([]);
-      setModelSelectValue("");
-      return;
-    }
-    const fetchBrandModels = async () => {
-      setBrandModelsLoading(true);
-      try {
-        const res = await controlPrivateApi.get(
-          `/brands/${selectedBrandId}/models/list`,
-        );
-        setBrandModels(res.data.data || []);
-        setModelSelectValue("");
-      } catch {
-        setBrandModels([]);
-      } finally {
-        setBrandModelsLoading(false);
-      }
-    };
-    fetchBrandModels();
-  }, [selectedBrandId]);
 
   // Image handlers
   const handleMainImageChange = (newImage: any) => {
@@ -644,6 +616,12 @@ function AddProductPage() {
       toast.error(t("search_required_before_add"));
       return;
     }
+    const fitmentIssue = validateFitments(fitments, isUniversal, t);
+    if (fitmentIssue) {
+      setFitmentError(fitmentIssue);
+      toast.error(fitmentIssue);
+      return;
+    }
     if (pending) return;
     setPending(true);
 
@@ -669,11 +647,9 @@ function AddProductPage() {
               return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
             })()
           : null,
-        brand_id: data.brand_id,
-        brand_model_ids: selectedModels.map((m) => m.id),
+
         categories: data.categories,
         main_category_id: data.main_category_id,
-        year: data.year || null,
         city_id: data.city_id || null,
         size_category: data.size_category,
         weight_gram: data.weight_gram,
@@ -700,6 +676,8 @@ function AddProductPage() {
           }
         }
       });
+
+      appendFitments(formData, fitments, isUniversal);
 
       // Handle sets
       if (data.sets && data.sets.length > 0) {
@@ -892,10 +870,7 @@ function AddProductPage() {
                             .map((cat) => (
                               <span key={cat.id}>{cat.title}</span>
                             ))}
-                          {item.brand_models?.length > 0 && (
-                            <span>{item.brand_models.map((m: any) => m.title).join(", ")}</span>
-                          )}
-                          {item.year && <span>{item.year}</span>}
+                          <FitmentSummary fitments={item.fitments} isUniversal={item.is_universal} />
                         </div>
                       </div>
                       <Button
@@ -947,10 +922,10 @@ function AddProductPage() {
             {selectedVariantForAttach.oem_code && (
               <span>OEM: {selectedVariantForAttach.oem_code}</span>
             )}
-            {selectedVariantForAttach.brand_models?.length > 0 && (
-              <span>{selectedVariantForAttach.brand_models.map((m: any) => m.title).join(", ")}</span>
-            )}
-            {selectedVariantForAttach.year && <span>{selectedVariantForAttach.year}</span>}
+            <FitmentSummary
+              fitments={selectedVariantForAttach.fitments}
+              isUniversal={selectedVariantForAttach.is_universal}
+            />
           </div>
         </div>
 
@@ -1384,84 +1359,22 @@ function AddProductPage() {
               )}
             </div>
 
-            {/* Brand */}
-            <div className="space-y-2">
-              <Label htmlFor="brand_id">{t("brand")} *</Label>
-              <Controller
-                name="brand_id"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value?.toString() || ""}
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                    placeholder={t("select_brand")}
-                    options={brands.map((brand: any) => ({
-                      value: brand.id.toString(),
-                      label: brand.title || brand.slug,
-                    }))}
-                    disabled={loading}
-                  />
-                )}
+            {/* Fitment: which cars this part fits */}
+            <div className="space-y-2 md:col-span-2">
+              <Label>{t("fitment") || "Uyğunluq"} *</Label>
+              <FitmentEditor
+                brands={brands}
+                value={fitments}
+                onChange={(next, universal) => {
+                  setFitments(next);
+                  setIsUniversal(universal);
+                  setFitmentError(null);
+                }}
+                disabled={loading}
+                error={fitmentError ?? undefined}
               />
-              {errors.brand_id && (
-                <p className="text-sm text-destructive">
-                  {errors.brand_id.message}
-                </p>
-              )}
             </div>
 
-            {/* Brand Model */}
-            <div className="space-y-2">
-              <Label>{t("brand_model")}</Label>
-              <Select
-                value={modelSelectValue}
-                onValueChange={(value) => {
-                  const model = brandModels.find((m: any) => m.id.toString() === value);
-                  const brand = brands.find((b: any) => b.id === selectedBrandId);
-                  if (!model || selectedModels.some((m) => m.id === model.id)) return;
-                  setSelectedModels((prev) => [
-                    ...prev,
-                    { id: model.id, title: model.title, brand_id: selectedBrandId || 0, brand_title: brand?.title || "" },
-                  ]);
-                  setModelSelectValue("");
-                }}
-                placeholder={t("select_brand_model")}
-                options={brandModels
-                  .filter((m: any) => !selectedModels.some((sm) => sm.id === m.id))
-                  .map((model: any) => ({ value: model.id.toString(), label: model.title }))}
-                disabled={loading || brandModelsLoading || !selectedBrandId}
-              />
-              {selectedModels.length > 0 && (
-                <div className="rounded-md border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-muted/50 text-muted-foreground text-xs">
-                        <th className="px-3 py-2 text-left font-medium">{t("brand")}</th>
-                        <th className="px-3 py-2 text-left font-medium">{t("model")}</th>
-                        <th className="w-8" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedModels.map((model, i) => (
-                        <tr key={model.id} className={i > 0 ? "border-t" : ""}>
-                          <td className="px-3 py-2 text-muted-foreground">{model.brand_title}</td>
-                          <td className="px-3 py-2">{model.title}</td>
-                          <td className="px-2 py-2">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedModels((prev) => prev.filter((m) => m.id !== model.id))}
-                              className="text-muted-foreground hover:text-destructive transition-colors"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
 
             {/* OEM Code */}
             <div className="space-y-2">
@@ -1566,31 +1479,6 @@ function AddProductPage() {
                   />
                 )}
               />
-            </div>
-
-            {/* Year */}
-            <div className="space-y-2">
-              <Label htmlFor="year">{t("year")}</Label>
-              <Controller
-                name="year"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    value={field.value || ""}
-                    id="year"
-                    type="number"
-                    placeholder={t("year")}
-                    min={1900}
-                    max={new Date().getFullYear()}
-                  />
-                )}
-              />
-              {errors.year && (
-                <p className="text-sm text-destructive">
-                  {errors.year.message}
-                </p>
-              )}
             </div>
 
             {/* City */}

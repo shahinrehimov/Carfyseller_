@@ -1,8 +1,15 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
+import {
+  FitmentEditor,
+  appendFitments,
+  toEditableFitments,
+  validateFitments,
+  type Fitment,
+} from "@/components/fitment/FitmentEditor";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
 import { toast } from "sonner";
@@ -74,10 +81,6 @@ function EditProductVariantPage() {
       otherwise: (schema) => schema.notRequired(),
     }),
     oem_code: Yup.string().max(100).notRequired(),
-    brand_id: Yup.number().notRequired(),
-    year: Yup.number()
-      .transform((value, originalValue) => (originalValue === "" ? undefined : value))
-      .notRequired(),
     city_id: Yup.number().notRequired(),
     options: Yup.array()
       .of(
@@ -97,7 +100,6 @@ function EditProductVariantPage() {
       .notRequired(),
   });
 
-  type SelectedModel = { id: number; title: string; brand_id: number; brand_title: string };
 
   const [cpv, setCpv] = useState<any>(null);
   const [isCreator, setIsCreator] = useState(true);
@@ -106,10 +108,9 @@ function EditProductVariantPage() {
   const [productOptions, setProductOptions] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
-  const [brandModels, setBrandModels] = useState<any[]>([]);
-  const [brandModelsLoading, setBrandModelsLoading] = useState(false);
-  const [selectedModels, setSelectedModels] = useState<SelectedModel[]>([]);
-  const [modelSelectValue, setModelSelectValue] = useState<string>("");
+  const [fitments, setFitments] = useState<Fitment[]>([]);
+  const [isUniversal, setIsUniversal] = useState(false);
+  const [fitmentError, setFitmentError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingRevision, setPendingRevision] = useState<any>(null);
@@ -144,8 +145,6 @@ function EditProductVariantPage() {
       discount_start_at: undefined,
       discount_end_at: undefined,
       oem_code: "",
-      brand_id: undefined,
-      year: "" as any,
       city_id: undefined,
       options: [],
     },
@@ -153,36 +152,6 @@ function EditProductVariantPage() {
 
   const hasDiscount = watch("has_discount");
   const options = watch("options");
-  const selectedBrandId = watch("brand_id");
-
-  const prevBrandIdRef = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    if (!selectedBrandId) {
-      if (prevBrandIdRef.current !== undefined) {
-        setBrandModels([]);
-        setModelSelectValue("");
-      }
-      prevBrandIdRef.current = undefined;
-      return;
-    }
-    prevBrandIdRef.current = selectedBrandId;
-
-    const fetchBrandModels = async () => {
-      setBrandModelsLoading(true);
-      try {
-        const res = await controlPrivateApi.get(`/brands/${selectedBrandId}/models/list`);
-        setBrandModels(res.data.data || []);
-        setModelSelectValue("");
-      } catch {
-        setBrandModels([]);
-      } finally {
-        setBrandModelsLoading(false);
-      }
-    };
-    fetchBrandModels();
-  }, [selectedBrandId]);
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -202,7 +171,7 @@ function EditProductVariantPage() {
         const isCreatorVariant = cpvData?.variant?.is_creator ?? true;
 
         // Fetch pending revision if seller is the creator
-        // revision = { id, status, data: {oem_code, brand_model_id, year, options}, images: {main_image, hover_image, images:[]} }
+        // revision = { id, status, data: {oem_code, fitments, options}, images: {main_image, hover_image, images:[]} }
         let revision: any = null;
         if (isCreatorVariant && pvId) {
           try {
@@ -229,36 +198,20 @@ function EditProductVariantPage() {
         setPendingRevision(revision);
 
         const pv = cpvData.variant;
-        // For brand pre-selection use the first of the current variant's brand models
-        const existingBrandModels: Array<{id: number; title: string; brand_id?: number}> = pv?.brand_models || [];
-        const existingBrandId = existingBrandModels[0]?.brand_id || pv?.product?.brand?.id;
-
-        // Init selected models — prefer revision's proposed IDs if pending revision exists
-        const makeModelEntry = (m: {id: number; title: string; brand_id?: number}) => {
-          const brand = allBrands.find((b: any) => b.id === m.brand_id);
-          return { id: m.id, title: m.title, brand_id: m.brand_id || 0, brand_title: brand?.title || "" };
-        };
-        if (revision?.data?.brand_model_ids?.length) {
-          const revisionModels = revision.data.brand_model_ids.map((id: number) => {
-            const match = existingBrandModels.find((m) => m.id === id);
-            return match ? makeModelEntry(match) : { id, title: `#${id}`, brand_id: 0, brand_title: "" };
-          });
-          setSelectedModels(revisionModels);
-        } else {
-          setSelectedModels(existingBrandModels.map(makeModelEntry));
-        }
-
-        if (existingBrandId) {
-          try {
-            const modelsRes = await controlPrivateApi.get(`/brands/${existingBrandId}/models/list`);
-            setBrandModels(modelsRes.data.data || []);
-          } catch {
-            // ignore
-          }
-        }
 
         // Prefer revision's proposed values for canonical fields, fall back to current variant
-        const rd = revision?.data; // { oem_code, brand_model_ids, year, options }
+        const rd = revision?.data; // { oem_code, fitments, options }
+
+        // A pending revision stores raw ids; a saved variant arrives serialised
+        // for display. toEditableFitments accepts either shape.
+        const initialFitments = toEditableFitments(
+          rd?.fitments?.length ? rd.fitments : pv?.fitments,
+        );
+        setFitments(initialFitments);
+        setIsUniversal(
+          initialFitments.length > 0 &&
+            initialFitments.every((f) => f.brand_id === null),
+        );
 
         const formValues: any = {
           main_image: {},
@@ -281,8 +234,6 @@ function EditProductVariantPage() {
           city_id: cpvData.city?.id || undefined,
           // PV (canonical) fields — use revision's proposed values if pending revision exists
           oem_code: rd?.oem_code ?? pv?.oem_code ?? "",
-          brand_id: existingBrandId || undefined,
-          year: rd?.year ?? pv?.year ?? "",
           options:
             pv?.options?.map((opt: any) => ({
               option_id: opt.option.id,
@@ -403,6 +354,14 @@ function EditProductVariantPage() {
   };
 
   const doSubmit = async (data: any) => {
+    if (isCreator) {
+      const fitmentIssue = validateFitments(fitments, isUniversal, t);
+      if (fitmentIssue) {
+        setFitmentError(fitmentIssue);
+        toast.error(fitmentIssue);
+        return;
+      }
+    }
     if (pending) return;
     setPending(true);
 
@@ -412,7 +371,6 @@ function EditProductVariantPage() {
       const basicFields: any = isCreator
         ? {
             oem_code: data.oem_code || null,
-            year: data.year || null,
           }
         : {
             has_discount: data.has_discount,
@@ -445,9 +403,7 @@ function EditProductVariantPage() {
       });
 
       if (isCreator) {
-        selectedModels.forEach((m, index) => {
-          formData.append(`brand_model_ids[${index}]`, String(m.id));
-        });
+        appendFitments(formData, fitments, isUniversal);
       }
 
       if (data.main_image?.file && data.main_image.file !== "show") {
@@ -676,120 +632,22 @@ function EditProductVariantPage() {
               />
             </div>}
 
-            {/* Brand — only for creator */}
-            {isCreator && <div className="space-y-2">
-              <Label htmlFor="brand_id">{t("brand")}</Label>
-              <Controller
-                name="brand_id"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value?.toString() || ""}
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                    placeholder={t("select_brand")}
-                    options={brands.map((brand: any) => ({
-                      value: brand.id.toString(),
-                      label: brand.title || brand.slug,
-                    }))}
-                    disabled={loading}
-                  />
-                )}
-              />
-            </div>}
-
-            {/* Brand Model — only for creator */}
-            {isCreator && <div className="space-y-2">
-              <Label>{t("brand_model")}</Label>
-              <Select
-                value={modelSelectValue}
-                onValueChange={(value) => {
-                  const model = brandModels.find((m: any) => m.id.toString() === value);
-                  const brand = brands.find((b: any) => b.id === selectedBrandId);
-                  if (!model || selectedModels.some((m) => m.id === model.id)) return;
-                  setSelectedModels((prev) => [
-                    ...prev,
-                    { id: model.id, title: model.title, brand_id: selectedBrandId || 0, brand_title: brand?.title || "" },
-                  ]);
-                  setModelSelectValue("");
+            {/* Fitment — only for creator */}
+            {isCreator && <div className="space-y-2 md:col-span-2">
+              <Label>{t("fitment") || "Uyğunluq"} *</Label>
+              <FitmentEditor
+                brands={brands}
+                value={fitments}
+                onChange={(next, universal) => {
+                  setFitments(next);
+                  setIsUniversal(universal);
+                  setFitmentError(null);
                 }}
-                placeholder={t("select_brand_model")}
-                options={brandModels
-                  .filter((m: any) => !selectedModels.some((sm) => sm.id === m.id))
-                  .map((model: any) => ({ value: model.id.toString(), label: model.title }))}
-                disabled={loading || brandModelsLoading || !selectedBrandId}
-              />
-              {selectedModels.length > 0 && (
-                <div className="rounded-md border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-muted/50 text-muted-foreground text-xs">
-                        <th className="px-3 py-2 text-left font-medium">{t("brand")}</th>
-                        <th className="px-3 py-2 text-left font-medium">{t("model")}</th>
-                        <th className="w-8" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedModels.map((model, i) => (
-                        <tr key={model.id} className={i > 0 ? "border-t" : ""}>
-                          <td className="px-3 py-2 text-muted-foreground">{model.brand_title}</td>
-                          <td className="px-3 py-2">{model.title}</td>
-                          <td className="px-2 py-2">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedModels((prev) => prev.filter((m) => m.id !== model.id))}
-                              className="text-muted-foreground hover:text-destructive transition-colors"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>}
-
-            {/* OEM Code — only for creator */}
-            {isCreator && <div className="space-y-2">
-              <Label htmlFor="oem_code">{t("oem_code")}</Label>
-              <Controller
-                name="oem_code"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    value={field.value ?? ""}
-                    id="oem_code"
-                    placeholder={t("oem_code")}
-                  />
-                )}
+                disabled={loading}
+                error={fitmentError ?? undefined}
               />
             </div>}
 
-            {/* Year — only for creator */}
-            {isCreator && <div className="space-y-2">
-              <Label htmlFor="year">{t("year")}</Label>
-              <Controller
-                name="year"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    value={field.value ?? ""}
-                    id="year"
-                    type="number"
-                    placeholder={t("year")}
-                    min={1900}
-                    max={new Date().getFullYear()}
-                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                )}
-              />
-              {errors.year && (
-                <p className="text-sm text-destructive">{errors.year.message}</p>
-              )}
-            </div>}
 
             {/* City — only for non-creator */}
             {!isCreator && <div className="space-y-2">

@@ -73,14 +73,32 @@ export interface Product {
   created_date: string;
 }
 
+/**
+ * One "fits this car" rule. null means "all": no brand fits every car, a brand
+ * without a model fits all of its models, and an open year bound is
+ * unrestricted on that side.
+ */
+export interface DisplayFitment {
+  brand: { id: number; title: string } | null;
+  brand_model: { id: number; title: string } | null;
+  year_from: number | null;
+  year_to: number | null;
+}
+
 export interface CatalogSearchItem {
   id: number;
   uuid: string;
   slug: string;
   title: string;
   oem_code: string | null;
+  /** @deprecated use year_from / year_to */
   year: number | null;
+  year_from: number | null;
+  year_to: number | null;
+  /** @deprecated derived from fitments */
   brand_models: Array<{ id: number; title: string; brand_id?: number }>;
+  fitments: DisplayFitment[];
+  is_universal: boolean;
   options: Array<any>;
   is_creator: boolean;
   already_attached: boolean;
