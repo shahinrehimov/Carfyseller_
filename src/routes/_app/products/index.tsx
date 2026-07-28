@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Search, Pencil, Trash2, Eye, Plus, Layers } from "lucide-react";
 import Modal from "@/components/ui/modal";
 import DeleteModal from "@/components/ui/delete-modal";
+import { ProductBrands } from "@/components/fitment/ProductBrands";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -125,11 +126,10 @@ function ProductsPage() {
                     {product.title}
                   </TableCell>
                   <TableCell>
-                    {product.brand?.title ? (
-                      <Badge variant="outline">{product.brand.title}</Badge>
-                    ) : (
-                      "-"
-                    )}
+                    <ProductBrands
+                      brands={product.brands}
+                      isUniversal={product.is_universal}
+                    />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">

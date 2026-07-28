@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, Loader2, Pencil } from "lucide-react";
 import { useProduct } from "@/lib/queries/products";
 import { Button } from "@/components/ui/button";
+import { ProductBrands } from "@/components/fitment/ProductBrands";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -113,7 +114,12 @@ function ProductShowPage() {
 
           <div>
             <p className="text-sm text-muted-foreground">{t("brand")}</p>
-            <p className="font-medium">{product.brand?.title || "-"}</p>
+            <div className="font-medium">
+              <ProductBrands
+                brands={product.brands}
+                isUniversal={product.is_universal}
+              />
+            </div>
           </div>
 
           <div>

@@ -11,13 +11,10 @@ export interface Product {
   hover_image: string | null;
   images: { urls: string[]; media_ids: number[] };
   is_set: boolean;
-  brand_id: number | null;
-  brand: {
-    id: number;
-    uuid: string;
-    slug: string;
-    title: string;
-  } | null;
+  /** @deprecated null when the product spans several brands; use brands */
+  brand: ProductBrand | null;
+  brands: ProductBrand[];
+  is_universal: boolean;
   main_category: {
     id: number;
     uuid: string;
@@ -83,6 +80,13 @@ export interface DisplayFitment {
   brand_model: { id: number; title: string } | null;
   year_from: number | null;
   year_to: number | null;
+}
+
+export interface ProductBrand {
+  id: number;
+  uuid: string;
+  slug: string;
+  title: string;
 }
 
 export interface CatalogSearchItem {

@@ -81,7 +81,6 @@ function EditProductPage() {
       otherwise: (schema) => schema.notRequired(),
     }),
     price: Yup.number().notRequired(),
-    brand_id: Yup.number().required(t("required_field")),
     categories: Yup.array().of(Yup.number()).required(t("required_field")),
     main_category_id: Yup.number().required(t("required_field")),
     stock: Yup.number().notRequired(),
@@ -109,7 +108,6 @@ function EditProductPage() {
   });
 
   // State
-  const [brands, setBrands] = useState<any[]>([]);
   const [flattenedCategories, setFlattenedCategories] = useState<any[]>([]);
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
   const [pending, setPending] = useState(false);
@@ -154,7 +152,6 @@ function EditProductPage() {
       is_set: false,
       sets: [],
       price: 0,
-      brand_id: undefined,
       categories: [],
       main_category_id: undefined,
       stock: 0,
@@ -197,13 +194,11 @@ function EditProductPage() {
       try {
         const [
           productRes,
-          brandsRes,
           categoriesRes,
           discountTypesRes,
           revisionRes,
         ] = await Promise.all([
           controlPrivateApi.get(`/products/show/${productId}`),
-          controlPrivateApi.get("/brands/list").catch(() => ({ data: { data: [] } })),
           controlPrivateApi
             .get("/categories/list?with_subs=yes")
             .catch(() => ({ data: { data: [] } })),
@@ -219,8 +214,6 @@ function EditProductPage() {
         setPendingRevision(revision);
 
         const productData = productRes.data.data;
-
-        setBrands(brandsRes.data.data || []);
 
         const categoryData = categoriesRes.data.data || [];
         const flattened: any[] = [];
@@ -305,7 +298,6 @@ function EditProductPage() {
                 }))
               : [],
           price: productData.price || 0,
-          brand_id: productData.brand_id || undefined,
           categories: productData.categories?.map((cat: any) => cat.id) || [],
           main_category_id: productData.main_category?.id || undefined,
           stock: productData.stock || 0,
@@ -423,7 +415,6 @@ function EditProductPage() {
               return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
             })()
           : null,
-        brand_id: data.brand_id,
         categories: data.categories,
         main_category_id: data.main_category_id,
         stock: data.stock,
@@ -712,32 +703,6 @@ function EditProductPage() {
               {errors.slug && (
                 <p className="text-sm text-destructive">
                   {errors.slug.message}
-                </p>
-              )}
-            </div>
-
-            {/* Brand */}
-            <div className="space-y-2">
-              <Label htmlFor="brand_id">{t("brand")} *</Label>
-              <Controller
-                name="brand_id"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value?.toString() || ""}
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                    placeholder={t("select_brand")}
-                    options={brands.map((brand: any) => ({
-                      value: brand.id.toString(),
-                      label: brand.title || brand.slug,
-                    }))}
-                    disabled={loading}
-                  />
-                )}
-              />
-              {errors.brand_id && (
-                <p className="text-sm text-destructive">
-                  {errors.brand_id.message}
                 </p>
               )}
             </div>
