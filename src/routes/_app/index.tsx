@@ -30,6 +30,7 @@ import {
   useTopViewed,
   useCustomerBehavior,
   type OrderPeriod,
+  type StatisticsCpv,
 } from "@/lib/queries/statistics";
 import { useTranslation } from "@/lib/utils/translationLoader";
 
@@ -88,11 +89,15 @@ function StatCard({ title, value, icon, color, loading, sub }: StatCardProps) {
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-muted-foreground truncate text-sm">{title}</p>
+          <p className="text-muted-foreground truncate text-sm" title={title}>
+            {title}
+          </p>
           {loading ? (
             <div className="bg-muted mt-1 h-6 w-24 animate-pulse rounded" />
           ) : (
-            <p className="truncate text-2xl font-bold">{value}</p>
+            <p className="truncate text-2xl font-bold" title={String(value)}>
+              {value}
+            </p>
           )}
           {sub && !loading && (
             <p className="text-muted-foreground truncate text-xs">{sub}</p>
@@ -144,6 +149,46 @@ function PeriodTabs({ value, onChange }: PeriodTabsProps) {
 function ChartSkeleton({ height = 280 }: { height?: number }) {
   return (
     <div className="bg-muted animate-pulse rounded-lg" style={{ height }} />
+  );
+}
+
+// ─── Product list row ─────────────────────────────────────────────────────────
+
+interface ProductRowProps {
+  cpv: StatisticsCpv | null;
+  value: string;
+  valueClassName: string;
+  sub: string;
+  rank?: number;
+}
+
+function ProductRow({ cpv, value, valueClassName, sub, rank }: ProductRowProps) {
+  return (
+    <div className="hover:bg-muted/30 flex items-center gap-3 px-5 py-3 transition-colors">
+      {rank !== undefined && (
+        <span className="text-muted-foreground w-5 shrink-0 text-center text-sm font-semibold">
+          {rank}
+        </span>
+      )}
+      {cpv?.main_image ? (
+        <img
+          src={cpv.main_image}
+          alt=""
+          className="h-9 w-9 shrink-0 rounded-md object-cover"
+        />
+      ) : (
+        <div className="bg-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
+          <Package size={16} className="text-muted-foreground" />
+        </div>
+      )}
+      <p className="min-w-0 flex-1 truncate text-sm font-medium">
+        {cpv?.title ?? "—"}
+      </p>
+      <div className="shrink-0 text-right text-xs">
+        <p className={`font-semibold ${valueClassName}`}>{value}</p>
+        <p className="text-muted-foreground">{sub}</p>
+      </div>
+    </div>
   );
 }
 
@@ -221,7 +266,7 @@ function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold">{t("dashboard")}</h1>
           <p className="text-muted-foreground text-sm">
-            {t("platform_general_statistics")}
+            {t("store_general_statistics")}
           </p>
         </div>
 
@@ -246,7 +291,7 @@ function DashboardPage() {
       </div>
 
       {/* ── KPI cards ── */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-6">
         <StatCard
           title={t("total_orders")}
           value={ordersData?.summary.total_orders ?? "—"}
@@ -412,36 +457,14 @@ function DashboardPage() {
             ) : (
               <div className="divide-border divide-y">
                 {(topSelling ?? []).map((item, i) => (
-                  <div
-                    key={item.cpv.id}
-                    className="hover:bg-muted/30 flex items-center gap-3 px-5 py-3 transition-colors"
-                  >
-                    <span className="text-muted-foreground w-5 shrink-0 text-center text-sm font-semibold">
-                      {i + 1}
-                    </span>
-                    {item.cpv.main_image ? (
-                      <img
-                        src={item.cpv.main_image}
-                        alt=""
-                        className="h-9 w-9 shrink-0 rounded-md object-cover"
-                      />
-                    ) : (
-                      <div className="bg-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
-                        <Package size={16} className="text-muted-foreground" />
-                      </div>
-                    )}
-                    <p className="min-w-0 flex-1 truncate text-sm font-medium">
-                      {item.cpv.title}
-                    </p>
-                    <div className="shrink-0 text-right text-xs">
-                      <p className="font-semibold text-emerald-600">
-                        {formatAZN(item.revenue)}
-                      </p>
-                      <p className="text-muted-foreground">
-                        {item.quantity_sold} {t("pcs")}
-                      </p>
-                    </div>
-                  </div>
+                  <ProductRow
+                    key={item.cpv?.id ?? i}
+                    rank={i + 1}
+                    cpv={item.cpv}
+                    value={formatAZN(item.revenue)}
+                    valueClassName="text-emerald-600"
+                    sub={`${item.quantity_sold} ${t("pcs")}`}
+                  />
                 ))}
                 {(topSelling ?? []).length === 0 && (
                   <p className="text-muted-foreground p-5 text-center text-sm">
@@ -469,34 +492,14 @@ function DashboardPage() {
             ) : (
               <div className="divide-border divide-y">
                 {(topViewed ?? []).map((item, i) => (
-                  <div
-                    key={item.cpv.id}
-                    className="hover:bg-muted/30 flex items-center gap-3 px-5 py-3 transition-colors"
-                  >
-                    <span className="text-muted-foreground w-5 shrink-0 text-center text-sm font-semibold">
-                      {i + 1}
-                    </span>
-                    {item.cpv.main_image ? (
-                      <img
-                        src={item.cpv.main_image}
-                        alt=""
-                        className="h-9 w-9 shrink-0 rounded-md object-cover"
-                      />
-                    ) : (
-                      <div className="bg-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
-                        <Package size={16} className="text-muted-foreground" />
-                      </div>
-                    )}
-                    <p className="min-w-0 flex-1 truncate text-sm font-medium">
-                      {item.cpv.title}
-                    </p>
-                    <div className="shrink-0 text-right text-xs">
-                      <p className="font-semibold text-indigo-600">
-                        {item.view_count.toLocaleString()}
-                      </p>
-                      <p className="text-muted-foreground">{t("views")}</p>
-                    </div>
-                  </div>
+                  <ProductRow
+                    key={item.cpv?.id ?? i}
+                    rank={i + 1}
+                    cpv={item.cpv}
+                    value={item.view_count.toLocaleString()}
+                    valueClassName="text-indigo-600"
+                    sub={t("views")}
+                  />
                 ))}
                 {(topViewed ?? []).length === 0 && (
                   <p className="text-muted-foreground p-5 text-center text-sm">
@@ -599,37 +602,14 @@ function DashboardPage() {
                 <div className="divide-border divide-y">
                   {(behavior?.abandoned_products ?? [])
                     .slice(0, 6)
-                    .map((item) => (
-                      <div
-                        key={item.cpv.id}
-                        className="hover:bg-muted/30 flex items-center gap-3 px-5 py-3 transition-colors"
-                      >
-                        {item.cpv.main_image ? (
-                          <img
-                            src={item.cpv.main_image}
-                            alt=""
-                            className="h-9 w-9 shrink-0 rounded-md object-cover"
-                          />
-                        ) : (
-                          <div className="bg-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
-                            <Package
-                              size={16}
-                              className="text-muted-foreground"
-                            />
-                          </div>
-                        )}
-                        <p className="min-w-0 flex-1 truncate text-sm font-medium">
-                          {item.cpv.title}
-                        </p>
-                        <div className="shrink-0 text-right text-xs">
-                          <p className="font-semibold text-amber-600">
-                            {item.abandonment_rate.toFixed(0)}%
-                          </p>
-                          <p className="text-muted-foreground">
-                            {item.abandoned_count} {t("abandoned")}
-                          </p>
-                        </div>
-                      </div>
+                    .map((item, i) => (
+                      <ProductRow
+                        key={item.cpv?.id ?? i}
+                        cpv={item.cpv}
+                        value={`${item.abandonment_rate.toFixed(0)}%`}
+                        valueClassName="text-amber-600"
+                        sub={`${item.abandoned_count} / ${item.basket_count} ${t("abandoned")}`}
+                      />
                     ))}
                 </div>
 
@@ -640,13 +620,17 @@ function DashboardPage() {
                       <BarChart
                         data={(behavior?.abandoned_products ?? [])
                           .slice(0, 5)
-                          .map((item) => ({
-                            name:
-                              item.cpv.title.length > 20
-                                ? `${item.cpv.title.slice(0, 20)}…`
-                                : item.cpv.title,
-                            rate: Number(item.abandonment_rate.toFixed(1)),
-                          }))}
+                          .map((item) => {
+                            const title = item.cpv?.title ?? "—";
+
+                            return {
+                              name:
+                                title.length > 20
+                                  ? `${title.slice(0, 20)}…`
+                                  : title,
+                              rate: Number(item.abandonment_rate.toFixed(1)),
+                            };
+                          })}
                         layout="vertical"
                         margin={{ top: 0, right: 8, left: 8, bottom: 0 }}
                       >

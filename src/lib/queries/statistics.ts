@@ -23,25 +23,23 @@ export interface OrdersStatistics {
   chart: OrdersChartPoint[];
 }
 
+export interface StatisticsCpv {
+  id: number;
+  uuid: string;
+  title: string | null;
+  main_image: string | null;
+}
+
 export interface TopSellingProduct {
-  cpv: {
-    id: number;
-    uuid: string;
-    title: string;
-    main_image: string | null;
-  };
+  /** null when the listing row no longer exists */
+  cpv: StatisticsCpv | null;
   quantity_sold: number;
   revenue: number;
   order_count: number;
 }
 
 export interface TopViewedProduct {
-  cpv: {
-    id: number;
-    uuid: string;
-    title: string;
-    main_image: string | null;
-  };
+  cpv: StatisticsCpv | null;
   view_count: number;
 }
 
@@ -55,12 +53,7 @@ export interface CustomerBehaviorOverview {
 }
 
 export interface AbandonedProduct {
-  cpv: {
-    id: number;
-    uuid: string;
-    title: string;
-    main_image: string | null;
-  };
+  cpv: StatisticsCpv | null;
   basket_count: number;
   order_count: number;
   abandoned_count: number;
