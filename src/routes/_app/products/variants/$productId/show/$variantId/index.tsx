@@ -245,6 +245,24 @@ function ShowProductVariantPage() {
                   </TableCell>
                 </TableRow>
               )}
+              <TableRow>
+                <TableCell className="font-medium">{t("commission", "Komissiya")}</TableCell>
+                <TableCell>
+                  {cpv.commission_percent != null
+                    ? `${cpv.commission_percent}%`
+                    : "—"}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">{t("site_price", "Saytda qiymət")}</TableCell>
+                <TableCell>
+                  <span className="font-semibold">
+                    {cpv.site_price_final != null
+                      ? formatPrice(cpv.site_price_final)
+                      : "—"}
+                  </span>
+                </TableCell>
+              </TableRow>
               {cpv.city && (
                 <TableRow>
                   <TableCell className="font-medium">{t("city")}</TableCell>

@@ -954,6 +954,8 @@ function ProductVariantsPage() {
               <TableHead>{t("stock")}</TableHead>
               <TableHead>{t("price")}</TableHead>
               <TableHead>{t("final_price")}</TableHead>
+              <TableHead>{t("commission", "Komissiya")}</TableHead>
+              <TableHead>{t("site_price", "Saytda qiymət")}</TableHead>
               <TableHead>{t("approval_status")}</TableHead>
               <TableHead>{t("status")}</TableHead>
               <TableHead>{t("actions")}</TableHead>
@@ -962,7 +964,7 @@ function ProductVariantsPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center">
+                <TableCell colSpan={13} className="text-center">
                   <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                 </TableCell>
               </TableRow>
@@ -1016,6 +1018,18 @@ function ProductVariantsPage() {
                         {item.discount_type === "by_percentage" ? "%" : "₼"}
                       </span>
                     )}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {item.commission_percent != null
+                      ? `${item.commission_percent}%`
+                      : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-medium">
+                      {item.site_price_final != null
+                        ? `${formatPrice(item.site_price_final)} ₼`
+                        : "—"}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -1100,7 +1114,7 @@ function ProductVariantsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={11} className="text-center">
+                <TableCell colSpan={13} className="text-center">
                   {t("no_data_found")}
                 </TableCell>
               </TableRow>
