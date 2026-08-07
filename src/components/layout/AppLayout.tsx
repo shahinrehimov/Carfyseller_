@@ -59,7 +59,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         <main
           data-app-scroll-container
-          className="flex-1 overflow-auto overscroll-y-contain p-6"
+          className="flex-1 overflow-auto overscroll-y-contain p-4 sm:p-6"
         >
           {children || <Outlet />}
         </main>

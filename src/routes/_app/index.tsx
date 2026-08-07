@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useMediaQuery } from "@uidotdev/usehooks";
 import {
   AreaChart,
   Area,
@@ -81,21 +82,27 @@ interface StatCardProps {
 function StatCard({ title, value, icon, color, loading, sub }: StatCardProps) {
   return (
     <Card>
-      <CardContent className="flex items-center gap-4 p-5">
+      <CardContent className="flex items-center gap-3 p-4 sm:gap-4 sm:p-5">
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-12 sm:w-12"
           style={{ backgroundColor: `${color}18`, color }}
         >
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-muted-foreground truncate text-sm" title={title}>
+          <p
+            className="text-muted-foreground truncate text-xs sm:text-sm"
+            title={title}
+          >
             {title}
           </p>
           {loading ? (
             <div className="bg-muted mt-1 h-6 w-24 animate-pulse rounded" />
           ) : (
-            <p className="truncate text-2xl font-bold" title={String(value)}>
+            <p
+              className="truncate text-lg font-bold sm:text-2xl"
+              title={String(value)}
+            >
               {value}
             </p>
           )}
@@ -126,15 +133,15 @@ function PeriodTabs({ value, onChange }: PeriodTabsProps) {
   };
 
   return (
-    <div className="bg-muted flex rounded-lg p-1 text-sm">
+    <div className="bg-muted flex w-full rounded-lg p-1 text-sm sm:w-auto">
       {PERIOD_VALUES.map((p) => (
         <button
           key={p}
           onClick={() => onChange(p)}
           className={
             value === p
-              ? "bg-background rounded-md px-3 py-1 font-medium shadow-sm transition-all"
-              : "text-muted-foreground rounded-md px-3 py-1 transition-all hover:text-foreground"
+              ? "bg-background flex-1 rounded-md px-2 py-1.5 font-medium shadow-sm transition-all sm:flex-none sm:px-3 sm:py-1"
+              : "text-muted-foreground flex-1 rounded-md px-2 py-1.5 transition-all hover:text-foreground sm:flex-none sm:px-3 sm:py-1"
           }
         >
           {labels[p]}
@@ -164,7 +171,7 @@ interface ProductRowProps {
 
 function ProductRow({ cpv, value, valueClassName, sub, rank }: ProductRowProps) {
   return (
-    <div className="hover:bg-muted/30 flex items-center gap-3 px-5 py-3 transition-colors">
+    <div className="hover:bg-muted/30 flex items-center gap-2 px-3 py-3 transition-colors sm:gap-3 sm:px-5">
       {rank !== undefined && (
         <span className="text-muted-foreground w-5 shrink-0 text-center text-sm font-semibold">
           {rank}
@@ -221,6 +228,7 @@ function RateBar({ label, rate, color }: RateBarProps) {
 
 function DashboardPage() {
   const { t } = useTranslation();
+  const isMobile = useMediaQuery("(width<48rem)");
 
   const today = new Date().toISOString().slice(0, 10);
   const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -259,31 +267,37 @@ function DashboardPage() {
   const labelRevenue = t("revenue_azn");
   const labelNoData = t("no_data_found");
 
+  const chartHeight = isMobile ? 220 : 280;
+  const chartTickSize = isMobile ? 10 : 12;
+  const areaChartMargin = isMobile
+    ? { top: 4, right: 8, left: -16, bottom: 0 }
+    : { top: 4, right: 16, left: 0, bottom: 0 };
+
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* ── Header ── */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t("dashboard")}</h1>
+          <h1 className="text-xl font-bold sm:text-2xl">{t("dashboard")}</h1>
           <p className="text-muted-foreground text-sm">
             {t("store_general_statistics")}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex sm:w-auto">
             <DatePicker
               value={dateFrom}
               onChange={(v) => v && setDateFrom(v)}
               placeholder={t("date_from")}
-              className="w-38"
+              className="w-full sm:w-38"
             />
-            <span className="text-muted-foreground select-none">—</span>
+            <span className="text-muted-foreground shrink-0 select-none">—</span>
             <DatePicker
               value={dateTo}
               onChange={(v) => v && setDateTo(v)}
               placeholder={t("date_to")}
-              className="w-38"
+              className="w-full sm:w-38"
             />
           </div>
           <PeriodTabs value={period} onChange={setPeriod} />
@@ -291,7 +305,7 @@ function DashboardPage() {
       </div>
 
       {/* ── KPI cards ── */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-6">
         <StatCard
           title={t("total_orders")}
           value={ordersData?.summary.total_orders ?? "—"}
@@ -348,18 +362,18 @@ function DashboardPage() {
             {t("order_dynamics")}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           {ordersLoading ? (
-            <ChartSkeleton />
+            <ChartSkeleton height={chartHeight} />
           ) : orderChart.length === 0 ? (
-            <div className="text-muted-foreground flex h-[280px] items-center justify-center text-sm">
+            <div className="text-muted-foreground flex h-[220px] items-center justify-center text-sm sm:h-[280px]">
               {labelNoData}
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={chartHeight} minWidth={0}>
               <AreaChart
                 data={orderChart}
-                margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
+                margin={areaChartMargin}
               >
                 <defs>
                   <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -390,19 +404,22 @@ function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: chartTickSize }}
                   tickLine={false}
+                  interval={isMobile ? "preserveStartEnd" : "preserveEnd"}
                 />
                 <YAxis
                   yAxisId="left"
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: chartTickSize }}
                   tickLine={false}
+                  width={isMobile ? 28 : 60}
                 />
                 <YAxis
                   yAxisId="right"
                   orientation="right"
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: chartTickSize }}
                   tickLine={false}
+                  width={isMobile ? 36 : 60}
                   tickFormatter={(v) => `${v}₼`}
                 />
                 <Tooltip
@@ -412,7 +429,7 @@ function DashboardPage() {
                     return [value, name];
                   }}
                 />
-                <Legend />
+                {!isMobile && <Legend />}
                 <Area
                   yAxisId="left"
                   type="monotone"
@@ -527,7 +544,7 @@ function DashboardPage() {
               <ChartSkeleton height={160} />
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   {[
                     {
                       label: t("total_views"),
@@ -547,10 +564,10 @@ function DashboardPage() {
                   ].map(({ label, value, color }) => (
                     <div
                       key={label}
-                      className="rounded-lg border p-3 text-center"
+                      className="rounded-lg border p-3 text-center sm:p-3"
                     >
                       <p
-                        className="text-xl font-bold"
+                        className="text-lg font-bold sm:text-xl"
                         style={{ color }}
                       >
                         {value ?? "—"}
@@ -615,8 +632,12 @@ function DashboardPage() {
 
                 {/* Mini bar chart for top 5 abandoned */}
                 {(behavior?.abandoned_products ?? []).length > 0 && (
-                  <div className="p-4">
-                    <ResponsiveContainer width="100%" height={140}>
+                  <div className="overflow-x-auto p-4">
+                    <ResponsiveContainer
+                      width="100%"
+                      height={isMobile ? 160 : 140}
+                      minWidth={0}
+                    >
                       <BarChart
                         data={(behavior?.abandoned_products ?? [])
                           .slice(0, 5)
@@ -625,14 +646,14 @@ function DashboardPage() {
 
                             return {
                               name:
-                                title.length > 20
-                                  ? `${title.slice(0, 20)}…`
+                                title.length > (isMobile ? 14 : 20)
+                                  ? `${title.slice(0, isMobile ? 14 : 20)}…`
                                   : title,
                               rate: Number(item.abandonment_rate.toFixed(1)),
                             };
                           })}
                         layout="vertical"
-                        margin={{ top: 0, right: 8, left: 8, bottom: 0 }}
+                        margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -649,9 +670,9 @@ function DashboardPage() {
                         <YAxis
                           type="category"
                           dataKey="name"
-                          tick={{ fontSize: 10 }}
+                          tick={{ fontSize: isMobile ? 9 : 10 }}
                           tickLine={false}
-                          width={130}
+                          width={isMobile ? 88 : 130}
                         />
                         <Tooltip
                           formatter={(v) => [`${v}%`, t("abandonment_rate")]}
