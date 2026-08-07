@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import ImageUploader from "@/components/ui/image-uploader";
 import LocationPickerModal from "@/components/ui/location-picker-modal";
 import { Select } from "@/components/ui/select";
+import { TimeInput24 } from "@/components/ui/time-input-24";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { useCountries, useCities } from "@/lib/queries/countries";
 import {
@@ -683,13 +684,9 @@ function StoreProfilePage() {
                         name={`hours.${i}.open_time`}
                         control={hoursForm.control}
                         render={({ field }) => (
-                          <Input
-                            type="time"
-                            value={field.value ?? ""}
-                            onChange={(e) =>
-                              field.onChange(e.target.value || null)
-                            }
-                            className="w-32"
+                          <TimeInput24
+                            value={field.value}
+                            onChange={field.onChange}
                           />
                         )}
                       />
@@ -698,13 +695,9 @@ function StoreProfilePage() {
                         name={`hours.${i}.close_time`}
                         control={hoursForm.control}
                         render={({ field }) => (
-                          <Input
-                            type="time"
-                            value={field.value ?? ""}
-                            onChange={(e) =>
-                              field.onChange(e.target.value || null)
-                            }
-                            className="w-32"
+                          <TimeInput24
+                            value={field.value}
+                            onChange={field.onChange}
                           />
                         )}
                       />
