@@ -155,6 +155,20 @@ body,
   width: 100%;
   overflow-y: hidden;
 }
+
+@supports (height: 100dvh) {
+  html,
+  body,
+  #root {
+    height: 100dvh;
+  }
+}
+
+@media (width < 48rem) {
+  [data-app-scroll-container] > .space-y-6.py-6 {
+    padding-bottom: 0.75rem;
+  }
+}
 body {
   margin: 0;
   font-family:

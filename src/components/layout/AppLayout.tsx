@@ -34,7 +34,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div
       className={cn(
-        "flex h-screen overflow-hidden bg-[#FBFBFBFB] dark:bg-[#242428]",
+        "flex h-dvh overflow-hidden bg-[#FBFBFBFB] dark:bg-[#242428]",
         isMobileView && "flex-col",
       )}
     >
@@ -59,7 +59,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         <main
           data-app-scroll-container
-          className="flex-1 overflow-auto overscroll-y-contain p-4 sm:p-6"
+          className="flex min-h-0 flex-1 flex-col overflow-auto overscroll-y-contain px-4 pt-4 pb-2 sm:p-6"
         >
           {children || <Outlet />}
         </main>
