@@ -150,23 +150,38 @@
 }
 html,
 body,
-#root {
+#app {
   height: 100%;
   width: 100%;
   overflow-y: hidden;
 }
 
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 @supports (height: 100dvh) {
   html,
   body,
-  #root {
+  #app {
     height: 100dvh;
   }
 }
 
 @media (width < 48rem) {
-  [data-app-scroll-container] > .space-y-6.py-6 {
-    padding-bottom: 0.75rem;
+  @supports (height: 100svh) {
+    html,
+    body,
+    #app {
+      height: 100svh;
+    }
+  }
+
+  [data-app-scroll-container] {
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem);
   }
 }
 body {
