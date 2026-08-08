@@ -121,11 +121,12 @@ export function Sidebar({
       className={cn(
         " bg-primary dark:bg-[#1A1B23] flex flex-col transition-all duration-300 ease-in-out relative",
         isCollapsed && !isMobile ? "w-[90px] h-screen" : "w-[250px] h-screen",
-        isMobile && "w-full h-16 shrink-0 overflow-hidden",
+        isMobile && "w-full h-16 shrink-0",
+        isMobile && !isCollapsed && "z-[60]",
         className,
       )}
     >
-      <div className="flex items-center h-16 px-6 ">
+      <div className="relative z-[70] flex h-16 items-center px-6">
         <div
           className={cn(
             "flex items-center gap-2 w-full justify-center ",
@@ -159,10 +160,10 @@ export function Sidebar({
           "flex-1 py-4 overflow-y-auto mt-2 transition-all duration-300 ease-in-out",
           isMobile &&
             (isCollapsed
-              ? "opacity-0 pointer-events-none transform translate-y-[-20px]"
-              : "opacity-100 pointer-events-auto transform translate-y-0"),
+              ? "pointer-events-none invisible opacity-0"
+              : "pointer-events-auto visible opacity-100"),
           isMobile &&
-            "absolute top-full z-50 left-0 right-0 w-full h-[calc(100svh-4rem)] mx-auto bg-gray-200 dark:bg-[#1A1B23]",
+            "fixed inset-x-0 top-16 bottom-0 z-[60] bg-gray-200 dark:bg-[#1A1B23]",
         )}
       >
         <nav
