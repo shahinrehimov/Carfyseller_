@@ -913,11 +913,9 @@ function ProductVariantsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link to="/products">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <h1 className="text-2xl font-bold">
             {productTitle
               ? `${productTitle} — ${t("variants")}`

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
 import { FitmentSummary } from "@/components/fitment/FitmentSummary";
@@ -75,11 +75,9 @@ function ShowProductVariantPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link to="/products/variants/$productId" params={{ productId }}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <div>
             <h1 className="text-2xl font-bold">
               {variant?.title || variant?.slug}

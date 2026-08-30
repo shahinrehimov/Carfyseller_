@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -534,11 +534,9 @@ function AddProductVariantPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-2">
-          <Link to="/products/variants/$productId" params={{ productId }}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <h1 className="text-2xl font-bold">{t("add_product_variant")}</h1>
         </div>
 

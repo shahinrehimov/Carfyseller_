@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -530,11 +530,9 @@ function EditProductPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Link to="/products">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <h1 className="text-2xl font-bold">{t("edit_product")}</h1>
       </div>
 
@@ -1186,11 +1184,9 @@ function EditProductPage() {
 
         {/* Submit Button */}
         <div className="flex justify-end space-x-2">
-          <Link to="/products">
-            <Button type="button" variant="outline">
-              {t("cancel")}
-            </Button>
-          </Link>
+          <Button type="button" variant="outline" onClick={() => window.history.back()}>
+            {t("cancel")}
+          </Button>
           <Button type="submit" disabled={pending || loading}>
             {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t("update_product")}
