@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
 import { searchCatalog, useAttachProductVariant } from "@/lib/queries/products";
 import type { CatalogSearchItem } from "@/lib/queries/products";
@@ -38,8 +40,13 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
+const variantsSearchSchema = z.object({
+  page: z.number().int().min(1).catch(1).default(1),
+});
+
 export const Route = createFileRoute("/_app/products/variants/$productId/")({
   component: ProductVariantsPage,
+  validateSearch: zodValidator(variantsSearchSchema),
 });
 
 // ─── Attach Form ──────────────────────────────────────────────────────────────
@@ -744,8 +751,9 @@ function ProductVariantsPage() {
   const { productId } = useParams({
     from: "/_app/products/variants/$productId/",
   });
+  const { page } = Route.useSearch();
+  const navigate = Route.useNavigate();
 
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [list, setList] = useState<any[]>([]);
   const [meta, setMeta] = useState({
@@ -809,7 +817,7 @@ function ProductVariantsPage() {
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
-    setPage(1);
+    navigate({ search: { page: 1 }, resetScroll: false });
     fetchData({ page: 1, search: value });
   };
 
@@ -1129,7 +1137,7 @@ function ProductVariantsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => navigate({ search: { page: Math.max(1, page - 1) } })}
             disabled={page === 1}
           >
             {t("previous")}
@@ -1140,7 +1148,7 @@ function ProductVariantsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => navigate({ search: { page: page + 1 } })}
             disabled={list.length < meta.per_page}
           >
             {t("next")}

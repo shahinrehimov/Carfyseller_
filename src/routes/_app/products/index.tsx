@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 import { useProducts, useDeleteProduct } from "@/lib/queries/products";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,13 +21,19 @@ import { useTranslation } from "@/lib/utils/translationLoader";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
+const productsSearchSchema = z.object({
+  page: z.number().int().min(1).catch(1).default(1),
+});
+
 export const Route = createFileRoute("/_app/products/")({
   component: ProductsPage,
+  validateSearch: zodValidator(productsSearchSchema),
 });
 
 function ProductsPage() {
   const { t } = useTranslation();
-  const [page, setPage] = useState(1);
+  const { page } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [search, setSearch] = useState("");
 
   const { data, isLoading, refetch } = useProducts({ page, search });
@@ -214,7 +222,7 @@ function ProductsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => navigate({ search: { page: Math.max(1, page - 1) } })}
             disabled={page === 1}
           >
             {t("previous")}
@@ -225,7 +233,7 @@ function ProductsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => navigate({ search: { page: page + 1 } })}
             disabled={!data || data.data.length < data.meta.per_page}
           >
             {t("next")}
