@@ -29,6 +29,10 @@ export interface SellerOrderItem {
     id: number;
     title: string;
   };
+  fitment_selection?: {
+    brand: { id: number; title: string } | null;
+    brand_model: { id: number; title: string } | null;
+  } | null;
   company_product_variant: {
     id: number;
     uuid: string;

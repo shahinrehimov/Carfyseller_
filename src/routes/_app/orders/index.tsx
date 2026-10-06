@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useSellerOrders } from "@/lib/queries/orders";
+import { FitmentSelectionBadge } from "@/components/fitment/FitmentSelectionToggle";
 import { useTranslation } from "@/lib/utils/translationLoader";
 
 export const Route = createFileRoute("/_app/orders/")({
@@ -116,6 +117,14 @@ function RouteComponent() {
                       {order.items[0].product_variant.title}
                     </p>
                   )}
+                  <div className="mt-1 flex max-w-[220px] flex-col gap-1">
+                    {order.items.map((item) => (
+                      <FitmentSelectionBadge
+                        key={item.id}
+                        selection={item.fitment_selection}
+                      />
+                    ))}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right font-medium tabular-nums">
                   {formatAZN(subtotal)}
@@ -185,6 +194,14 @@ function RouteComponent() {
                   {order.items[0].product_variant.title}
                 </p>
               )}
+              <div className="mt-1 flex flex-col gap-1">
+                {order.items.map((item) => (
+                  <FitmentSelectionBadge
+                    key={item.id}
+                    selection={item.fitment_selection}
+                  />
+                ))}
+              </div>
               <div className="mt-3 flex justify-end">
                 <Button
                   variant="outline"

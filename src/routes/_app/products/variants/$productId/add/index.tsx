@@ -10,6 +10,10 @@ import {
   type Fitment,
 } from "@/components/fitment/FitmentEditor";
 import { FitmentSummary } from "@/components/fitment/FitmentSummary";
+import {
+  FitmentSelectionToggle,
+  appendRequiresFitmentSelection,
+} from "@/components/fitment/FitmentSelectionToggle";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
 import { toast } from "sonner";
@@ -57,6 +61,8 @@ function AddProductVariantPage() {
   const [brands, setBrands] = useState<any[]>([]);
   const [fitments, setFitments] = useState<Fitment[]>([]);
   const [isUniversal, setIsUniversal] = useState(false);
+  const [requiresFitmentSelection, setRequiresFitmentSelection] = useState(false);
+  const [productIsSet, setProductIsSet] = useState(false);
   const [fitmentError, setFitmentError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -200,19 +206,21 @@ function AddProductVariantPage() {
     const fetchHelperData = async () => {
       setLoading(true);
       try {
-        const [discountTypesRes, sizeCategoriesRes, productOptionsRes, countriesRes, brandsRes] =
+        const [discountTypesRes, sizeCategoriesRes, productOptionsRes, countriesRes, brandsRes, productRes] =
           await Promise.all([
             controlPrivateApi.get("/discount-types/list").catch(() => ({ data: { data: [] } })),
             controlPrivateApi.get("/product-size-categories/list").catch(() => ({ data: { data: [] } })),
             controlPrivateApi.get("/product-options/list?with_items=yes").catch(() => ({ data: { data: [] } })),
             controlPrivateApi.get("/countries/list?with_cities=yes").catch(() => ({ data: { data: [] } })),
             controlPrivateApi.get("/brands/list").catch(() => ({ data: { data: [] } })),
+            controlPrivateApi.get(`/products/show/${productId}`).catch(() => ({ data: { data: null } })),
           ]);
 
         setDiscountTypes(discountTypesRes.data.data || []);
         setSizeCategories(sizeCategoriesRes.data.data || []);
         setProductOptions(productOptionsRes.data.data || []);
         setBrands(brandsRes.data.data || []);
+        setProductIsSet(Boolean(productRes.data?.data?.is_set));
 
         const allCities = (countriesRes.data.data || []).flatMap(
           (country: any) => country.cities || []
@@ -410,6 +418,9 @@ function AddProductVariantPage() {
       });
 
       appendFitments(formData, fitments, isUniversal);
+      if (!productIsSet) {
+        appendRequiresFitmentSelection(formData, requiresFitmentSelection);
+      }
 
       if (mainImage?.file) formData.append("main_image", mainImage.file);
       if (hoverImage?.file) formData.append("hover_image", hoverImage.file);
@@ -959,6 +970,16 @@ function AddProductVariantPage() {
                 disabled={loading}
                 error={fitmentError ?? undefined}
               />
+              {!productIsSet && (
+                <FitmentSelectionToggle
+                  checked={requiresFitmentSelection}
+                  onCheckedChange={setRequiresFitmentSelection}
+                  fitments={fitments}
+                  isUniversal={isUniversal}
+                  disabled={loading}
+                  t={t}
+                />
+              )}
             </div>
 
 

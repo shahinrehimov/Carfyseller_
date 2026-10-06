@@ -24,6 +24,7 @@ import {
   type OrderItemStatus,
 } from "@/lib/queries/orders";
 import { isAxiosError } from "axios";
+import { FitmentSelectionBadge } from "@/components/fitment/FitmentSelectionToggle";
 import { useTranslation } from "@/lib/utils/translationLoader";
 
 function apiErrorMessage(e: unknown): string | undefined {
@@ -376,6 +377,7 @@ function OrderShowPage() {
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>
                     <div className="max-w-md font-medium">{item.product_variant.title}</div>
+                    <FitmentSelectionBadge selection={item.fitment_selection} />
                     {item.cancel_reason && (
                       <p className="mt-1 text-xs text-red-600 dark:text-red-400">
                         {t("cancel_reason", "Səbəb")}: {item.cancel_reason}

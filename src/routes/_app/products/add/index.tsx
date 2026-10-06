@@ -11,6 +11,10 @@ import {
   type Fitment,
 } from "@/components/fitment/FitmentEditor";
 import { FitmentSummary } from "@/components/fitment/FitmentSummary";
+import {
+  FitmentSelectionToggle,
+  appendRequiresFitmentSelection,
+} from "@/components/fitment/FitmentSelectionToggle";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
 import { toast } from "sonner";
@@ -326,6 +330,7 @@ function AddProductPage() {
   const [brands, setBrands] = useState<any[]>([]);
   const [fitments, setFitments] = useState<Fitment[]>([]);
   const [isUniversal, setIsUniversal] = useState(false);
+  const [requiresFitmentSelection, setRequiresFitmentSelection] = useState(false);
   const [fitmentError, setFitmentError] = useState<string | null>(null);
   const [flattenedCategories, setFlattenedCategories] = useState<any[]>([]);
   const [discountTypes, setDiscountTypes] = useState<any[]>([]);
@@ -389,6 +394,10 @@ function AddProductPage() {
   const selectedCategories = watch("categories");
   const options = watch("options");
   const sets = watch("sets");
+
+  useEffect(() => {
+    if (isSet) setRequiresFitmentSelection(false);
+  }, [isSet]);
 
   // Auto-add a set when is_set is checked and no sets exist
   useEffect(() => {
@@ -678,6 +687,9 @@ function AddProductPage() {
       });
 
       appendFitments(formData, fitments, isUniversal);
+      if (!data.is_set) {
+        appendRequiresFitmentSelection(formData, requiresFitmentSelection);
+      }
 
       // Handle sets
       if (data.sets && data.sets.length > 0) {
@@ -1371,6 +1383,16 @@ function AddProductPage() {
                 disabled={loading}
                 error={fitmentError ?? undefined}
               />
+              {!isSet && (
+                <FitmentSelectionToggle
+                  checked={requiresFitmentSelection}
+                  onCheckedChange={setRequiresFitmentSelection}
+                  fitments={fitments}
+                  isUniversal={isUniversal}
+                  disabled={loading}
+                  t={t}
+                />
+              )}
             </div>
 
 

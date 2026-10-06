@@ -10,6 +10,10 @@ import {
   validateFitments,
   type Fitment,
 } from "@/components/fitment/FitmentEditor";
+import {
+  FitmentSelectionToggle,
+  appendRequiresFitmentSelection,
+} from "@/components/fitment/FitmentSelectionToggle";
 import { useTranslation } from "@/lib/utils/translationLoader";
 import { controlPrivateApi } from "@/lib/axios/controlPrivateApi";
 import { toast } from "sonner";
@@ -110,6 +114,7 @@ function EditProductVariantPage() {
   const [brands, setBrands] = useState<any[]>([]);
   const [fitments, setFitments] = useState<Fitment[]>([]);
   const [isUniversal, setIsUniversal] = useState(false);
+  const [requiresFitmentSelection, setRequiresFitmentSelection] = useState(false);
   const [fitmentError, setFitmentError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -211,6 +216,18 @@ function EditProductVariantPage() {
         setIsUniversal(
           initialFitments.length > 0 &&
             initialFitments.every((f) => f.brand_id === null),
+        );
+        const proposedFitment =
+          rd && Object.prototype.hasOwnProperty.call(rd, "requires_fitment_selection")
+            ? rd.requires_fitment_selection
+            : revision &&
+                Object.prototype.hasOwnProperty.call(revision, "requires_fitment_selection")
+              ? revision.requires_fitment_selection
+              : undefined;
+        setRequiresFitmentSelection(
+          proposedFitment === true || proposedFitment === false
+            ? proposedFitment
+            : Boolean(pv?.requires_fitment_selection),
         );
 
         const formValues: any = {
@@ -404,6 +421,10 @@ function EditProductVariantPage() {
 
       if (isCreator) {
         appendFitments(formData, fitments, isUniversal);
+        const variantIsSet = Boolean(cpv?.variant?.is_set || cpv?.variant?.product?.is_set);
+        if (!variantIsSet) {
+          appendRequiresFitmentSelection(formData, requiresFitmentSelection);
+        }
       }
 
       if (data.main_image?.file && data.main_image.file !== "show") {
@@ -644,6 +665,16 @@ function EditProductVariantPage() {
                 disabled={loading}
                 error={fitmentError ?? undefined}
               />
+              {!(cpv?.variant?.is_set || cpv?.variant?.product?.is_set) && (
+                <FitmentSelectionToggle
+                  checked={requiresFitmentSelection}
+                  onCheckedChange={setRequiresFitmentSelection}
+                  fitments={fitments}
+                  isUniversal={isUniversal}
+                  disabled={loading}
+                  t={t}
+                />
+              )}
             </div>}
 
 

@@ -303,6 +303,16 @@ function ShowProductVariantPage() {
                   </TableCell>
                 </TableRow>
               )}
+              <TableRow>
+                <TableCell className="font-medium">
+                  {t("requires_fitment_selection", "Müştəri maşın seçir")}
+                </TableCell>
+                <TableCell>
+                  {variant?.requires_fitment_selection
+                    ? t("yes", "Bəli")
+                    : t("no", "Xeyr")}
+                </TableCell>
+              </TableRow>
               {variant?.product && (
                 <TableRow>
                   <TableCell className="font-medium">{t("product")}</TableCell>
